@@ -10,7 +10,21 @@ mail : pierrick.berthe@gmx.fr
 Avril 2025
 """
 
-config = {
-    "input_folder": "data/input/source",
-    "output_folder": "data/output/"
+# Parameters for image processing and OCR
+best_params = {
+    'adjust_contrast': 0.5,
+    'batch_size': 1,
+    'decoder': "wordbeamsearch",
+    'scale_percent': 25,
+    'worker': 0
 }
+
+# Pattern to search for ("a(1)", etc.), exclude if unit of measurement follows
+pattern = (
+    r"([a-zA-Z]+)(\d+)"
+    r"(?!\s*("
+    r"cm|mm|dm|km|hm|µm|nm|pm|in|ft|yd|mi|kg|mg|ml|cl|dl|hl|"
+    r"ms|µs|ns|ps|min|°c|°f|pa|kpa|mpa|bar|mb|db|mv|kv|ma|ka|"
+    r"kw|mw|gw|hz|khz|mhz|ghz|kb|mb|gb|tb|pb|go|ko|mo"
+    r")\b)"
+)
