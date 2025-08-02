@@ -13,11 +13,13 @@ import ocr_utils as func
 from config import best_params, pattern
 from tqdm import tqdm
 import datetime
+import time
+import importlib.metadata
+import PIL
 
 if __name__ == "__main__":
-    print("Démarrage du script principal...")
 
-    ##################### PRINT DIRECTORIES #####################
+    ##################### DIRECTORIES SETUP #####################
 
     # parent, data et output directories
     project_dir = os.getcwd().split("\\src")[0]
@@ -29,7 +31,7 @@ if __name__ == "__main__":
     logo_dir = os.path.join(project_dir, "image")
     bdd_dir = os.path.join(project_dir, "bdd")
 
-    # Utilisation :
+    # Check and create directories if they do not exist
     func.check_and_create_directories(
         data_dir,
         output_dir,
@@ -40,25 +42,61 @@ if __name__ == "__main__":
         temp_dir
     )
 
-    # Redirect all prints to a log file
-    sys.stdout = func.Logger(os.path.join(output_json_dir, "process_log.txt"))
-
     # Define a flag to indicate if the French text correction is needed
     IS_CORRECT_TEXT_FRENCH = False
 
+    # Redirect all prints to a log file
+    sys.stdout = func.Logger(os.path.join(output_json_dir, "process_log.txt"))
+    
+    print("Démarrage du script principal...")
+
+    ###################### PRINT LIBRAIRIES VERSIONS #####################
+
+    print("\nInterpréteur python :")
+    print("Python        : " + sys.version + "\n")
+
+    print("Version des librairies utilisées :")
+    print("Docx          : " + func.docx.__version__)
+    print("Easyocr       : " + func.easyocr.__version__)
+    print(
+        "LanguageTool  : " + importlib.metadata.version("language-tool-python")
+    )
+    print("Numpy         : " + func.np.__version__)
+    print("Pandas        : " + func.pd.__version__)
+    print("Pillow        : " + PIL.__version__)
+    print("OpenCV        : " + func.cv2.__version__)
+    print("TQDM          : " + importlib.metadata.version("tqdm"))
+
+    # Print time
+    start_time = time.time()
+    now = datetime.datetime.now().isoformat()
+    print("\nCode lance le : " + now + "\n")
+
     ##################### INPUT USER #####################
 
-    # # Input from the user
-    # client_acronym, date_mesure, folder_ignored, folder_ignored_dir = func.get_user_inputs(data_dir)
+    # Save the current stdout to restore it later
+    old_stdout = sys.stdout
+    sys.stdout = sys.__stdout__ 
 
-    # DEV
-    client_acronym = "tde"
-    date_mesure = "11/07/2025"
-    folder_ignored = "2 - Conduits"
-    folder_ignored_dir = os.path.join(data_dir, folder_ignored)
+    # Input from the user
+    client_acronym, date_mesure, folder_ignored, folder_ignored_dir = func.get_user_inputs(data_dir)
+
+    # Activate the logger again
+    sys.stdout = old_stdout
+
+    # Print the inputs
+    print("\nInputs:")
+    print("client_acronym     : " + client_acronym)
+    print("date_mesure        : " + date_mesure)
+    print("folder_ignored_dir : " + folder_ignored_dir)
+
+    # # DEV
+    # client_acronym = "tde"
+    # date_mesure = "11/07/2025"
+    # folder_ignored = "2 - Conduits"
+    # folder_ignored_dir = os.path.join(data_dir, folder_ignored)
 
     ##################### TEXT EXTRACTION #####################
-
     # Print the step
     func.print_step(1, "Extraction du texte des images")
 
@@ -81,8 +119,8 @@ if __name__ == "__main__":
             text_extracted[subdir] = {}
 
             # Skip the ignored folder with empty text
-            if subdir == folder_ignored_dir:
-                print("===>>> Folder ignored <<<===")
+            if subdir == folder_ignored_dir or subdir == folder_ignored:
+                print(f" Dossier ignoré : '{subdir}'")
                 for file in files:
                     text_extracted[subdir][file] = ""
 
@@ -145,7 +183,6 @@ if __name__ == "__main__":
         print("Le fichier JSON d'extraction de texte existe déjà, il est importé.")
 
     ##################### COPY FILES WITH MAPPING #####################
-
     # Print the step
     func.print_step(2, "Importation du fichier JSON de mapping des clés")
 
@@ -169,7 +206,6 @@ if __name__ == "__main__":
     )
 
     ##################### GROUP DATA BY CHIMNEY NAME #####################
-
     # Print the step
     func.print_step(3, "Groupement des données par nom de cheminée")
 
@@ -180,7 +216,6 @@ if __name__ == "__main__":
     func.save_to_json(data_per_chimney, output_json_dir, "data_per_chimney.json")
 
     #####################  GET CLIENT NAME #############################
-
     # Print the step
     func.print_step(4, "Récupération du nom du client")
 
@@ -190,7 +225,6 @@ if __name__ == "__main__":
     print(f"\nClient name: {client_name}")
 
     ##################### WORD REPORT #################################
-
     # Print the step
     func.print_step(5, "Génération du rapport Word")
 
@@ -206,7 +240,6 @@ if __name__ == "__main__":
     )
 
     ##################### DATABASE IMPLEMENTATION ##########################
-
     # Print the step
     func.print_step(6, "Insertion des données dans la base de données")
 
@@ -233,8 +266,8 @@ if __name__ == "__main__":
                 os.remove(file_path)
         os.rmdir(temp_dir)
 
-    # Print the final message
+    # Print end message
     print("\n" + "*" * 75)
-    print("Traitement terminé avec succès !")
+    print("==> FIN DU SCRIPT PRINCIPAL <==")
     print("*" * 75)
-    print("Les résultats sont disponibles dans le dossier de sortie.")
+    func.calculate_duration(start_time)

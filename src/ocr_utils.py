@@ -28,6 +28,7 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.shared import Pt
 import sqlite3
 
+
 # pylint: disable=no-member
 
 class Logger(object):
@@ -45,7 +46,7 @@ class Logger(object):
 
 def check_and_create_directories(*dirs):
     """
-    Vérifie et crée tous les dossiers passés en argument s'ils n'existent pas.
+    check if directories exist, if not, create them.
     """
     for d in dirs:
         if not os.path.exists(d):
@@ -54,32 +55,29 @@ def check_and_create_directories(*dirs):
 
 def get_user_inputs(data_dir):
     """
-    Demande à l'utilisateur les initiales du client, la date de mesure et le
-    dossier à ignorer.
+    Ask the user for inputs such as client acronym, date of measurement,
+    and folder to ignore. Returns these inputs.
     """
     # create acronym for the client name
     client_acronym = input("Entrez les initiales du nom du client : ")
 
-    # Define the date of the measurement
+    # Define the date of the measurement (format: JJ/MM/AAAA and before today)
     while True:
         try:
             date_mesure = input(
                 "Entrez la date de la mesure (format JJ/MM/AAAA) : "
-                )
+            )
             date_obj = datetime.datetime.strptime(date_mesure, "%d/%m/%Y")
+            if date_obj > datetime.datetime.now():
+                print("La date ne peut pas être dans le futur.")
+                continue
             break
         except ValueError:
-            print("Format incorrect. Veuillez entrer la date au format JJ/MM/AAAA (ex. 30/06/2025).")
+            print("Format incorrect ou date impossible. Veuillez entrer la date au format JJ/MM/AAAA (ex. 30/06/2025).")
 
     # Specify the folder to ignore
     folder_ignored = input("Entrez le nom exact du dossier à ignorer : ")
     folder_ignored_dir = os.path.join(data_dir, folder_ignored)
-
-    # Print the inputs
-    print("\nInputs:")
-    print("client_acronym     : " + client_acronym)
-    print("date_mesure        : " + date_mesure)
-    print("folder_ignored_dir : " + folder_ignored_dir)
 
     return client_acronym, date_mesure, folder_ignored, folder_ignored_dir
 
@@ -357,7 +355,7 @@ def copy_files_with_mapping(
 
     # Create the output directory if it doesn't exist
     for subdir, files in text_extracted.items():
-        subdir = subdir.split("\\")[-1]  # Get the last part of the path
+        subdir = subdir.split("\\")[-1]
         output_subdir = os.path.join(output_folder_dir, subdir)
         os.makedirs(output_subdir, exist_ok=True)
         mapping[subdir], key_info_dict[subdir] = {}, {}
@@ -499,7 +497,7 @@ def save_to_json(data, output_dir, filename):
     try:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
-        print(f"\nDonnées sauvegardées dans le fichier JSON : {file_path}")
+        print(f"\nDonnées sauvegardées dans le fichier JSON :\n {file_path}")
         return file_path
 
     # Error handling
@@ -517,13 +515,15 @@ def save_to_json(data, output_dir, filename):
 
 def get_client_name_counts(data):
     """
-    Retrieves the count of occurrences for each client name using Pandas.
+    Retrieves the count of occurrences for each client name using Pandas,
+    ignoring empty client names.
     """
-    # Flatten the data into a list of client names
+    # Flatten the data into a list of client names, ignore empty strings
     client_names = [
         info["client_name"]
         for subdir, files in data.items()
         for file, info in files.items()
+        if info["client_name"] != ""
     ]
 
     # Create a Pandas Series and count occurrences
@@ -714,13 +714,13 @@ def generate_word_report(
 
     # Save the Word document
     document.save(output_file_path)
-    print(f"\nRapport généré: {output_file_path}")
+    print(f"\nRapport généré:\n {output_file_path}")
 
 
 def create_database_and_tables(bdd_dir, db_name="bdd_airpur.db"):
     """
-    Création d'une base de données SQLite et de ses tables.
-    Si la base de données existe déjà, elle n'est pas recréée.
+    Create a SQLite database and its tables. 
+    If the database already exists, it is not recreated.
     """
     # Build the database file path
     bdd_path = os.path.join(bdd_dir, db_name)
@@ -768,19 +768,22 @@ def create_database_and_tables(bdd_dir, db_name="bdd_airpur.db"):
         # Commit changes and close the connection
         conn.commit()
         conn.close()
-        print(f"\nBase de données créée : {bdd_path}\n")
+        print(f"\nBase de données (BDD) créée :\n {bdd_path}")
     else:
-        print(f"\nBase de données déjà existante : {bdd_path}\n")
+        print(f"\nBase de données (BDD) déjà existante :\n {bdd_path}")
+    print("\n" + "." * 75)
 
     return bdd_path
 
 
 def insert_client_into_db(bdd_path, client_acronym, client_name):
     """
-    Insère un client dans la base de données SQLite.
-    Si le client existe déjà, il ne sera pas inséré à nouveau.
+    Insert a client into the SQLite database.
+    If the client already exists, it will not be inserted again.
+    Displays the total number of clients and the number of clients added.
     """
     print("\nTABLE clients : ")
+    client_added = False
     try:
         # Connect to the database
         conn = sqlite3.connect(bdd_path, timeout=10)
@@ -793,15 +796,27 @@ def insert_client_into_db(bdd_path, client_acronym, client_name):
                 (client_acronym, client_name)
             )
             conn.commit()
-            print(f"\nClient '{client_name}' inséré avec succès dans la base de données : {bdd_path}")
+            print(f"Client '{client_name}', acronym '{client_acronym}' : ajouté à la BDD.\n")
+            client_added = True
 
         # If the client already exists, print a message
         except sqlite3.IntegrityError:
-            print(f"Le client '{client_name}' existe déjà dans la base de données : {bdd_path}")
+            print(f"Client '{client_name}', acronym '{client_acronym}' : existant déjà dans la BDD.\n")
 
         # Print error if insertion fails
         except Exception as e:
-            print(f"Erreur lors de l'insertion du client : {e}")
+            print(f"Erreur lors de l'insertion du client : {e}\n")
+
+        # Count the total number of clients in the database
+        cur.execute("SELECT COUNT(*) FROM clients")
+        total_clients = cur.fetchone()[0]
+        print(f"Nombre de client ajouté dans BDD : {1 if client_added else 0}")
+        print(f"Nombre total de clients dans la BDD : {total_clients}")
+        print("\n" + "." * 75)
+
+    # Error handling for connection issues
+    except Exception as e:
+        print(f"Erreur de connexion ou d'exécution SQL : {e}")
 
     # Ensure the connection is closed
     finally:
@@ -813,9 +828,12 @@ def insert_client_into_db(bdd_path, client_acronym, client_name):
 
 def insert_cheminee_into_db(bdd_path, client_acronym, data_per_chimney):
     """
-    Insertion des données des cheminées dans la base de données SQLite.
+    Insertion of chimneys into the SQLite database.
+    If the chimney already exists, it will not be inserted again.
+    Displays the total number of chimneys and the number of chimneys added.
     """
     print("\nTABLE cheminées : ")
+    cheminees_added = 0
     try:
         # Connect to the database
         conn = sqlite3.connect(bdd_path, timeout=10)
@@ -844,16 +862,24 @@ def insert_cheminee_into_db(bdd_path, client_acronym, data_per_chimney):
                         "INSERT INTO cheminees (client_id, cheminee_id, localisation, remarques) VALUES (?, ?, ?, ?)",
                         (client_acronym, cheminee_id, max_length_word, remarques)
                     )
+                    cheminees_added += 1
+                    print(f"Client: '{client_acronym}', Cheminée: '{cheminee_id}', Localisation: '{max_length_word}' : ajoutée à la BDD.")
 
                 # Exception handling for duplicate entries
                 except sqlite3.IntegrityError:
-                    print(f"La cheminée '{cheminee_id}' existe déjà dans la base de données : {bdd_path}")
+                    print(f"Client: '{client_acronym}', Cheminée: '{cheminee_id}', Localisation: '{max_length_word}' : existe déjà dans la BDD.")
                 except Exception as e:
                     print(f"Erreur lors de l'insertion de la cheminée {cheminee_id} : {e}")
-
         conn.commit()
 
-    # Ensure the connection is closed
+        # Count the total number of chimneys in the database
+        cur.execute("SELECT COUNT(*) FROM cheminees")
+        total_cheminees = cur.fetchone()[0]
+        print(f"\nNombre de combinaison client/cheminée/localisation ajoutée(s) dans la BDD : {cheminees_added}")
+        print(f"Nombre total de combinaison client/cheminée/localisation dans la BDD : {total_cheminees}")
+        print("\n" + "." * 75)
+
+    # Error handling for connection issues
     except Exception as e:
         print(f"Erreur de connexion ou d'exécution SQL : {e}")
 
@@ -872,9 +898,14 @@ def insert_mesure_into_db(
         date_mesure
     ):
     """
-    Insertion des mesures dans la base de données SQLite.
+    Insertion of measurements into the SQLite database.
+    If the measurement already exists, it will not be inserted again.
+    Checks the last mesure_id and date_mesure for each client and chimney.
+    Displays the total number of measurements and the number of measurements
+    added.
     """
     print("\nTABLE mesures : ")
+    mesures_added = 0
     try:
         # Connect to the database
         conn = sqlite3.connect(bdd_path, timeout=3)
@@ -925,21 +956,31 @@ def insert_mesure_into_db(
                 """, (client_acronym, cheminee_id, mesure_id))
                 exists = cur.fetchone()[0]
 
+                # If the measure already exists, skip to the next
                 if exists:
-                    print(f"Déjà présent (clé primaire) : (client_id={client_acronym}, cheminee_id={cheminee_id}, mesure_id={mesure_id})")
+                    print(f"Client: '{client_acronym}', Cheminée: '{cheminee_id}', date de mesure: '{date_mesure_sql}', mesure_id: {mesure_id} : déjà existante dans la BDD.")
                     continue
 
+                # Insert the measure into the table
                 try:
                     cur.execute(
                         "INSERT INTO mesures (client_id, cheminee_id, mesure_id, date_mesure) VALUES (?, ?, ?, ?)",
                         (client_acronym, cheminee_id, mesure_id, date_mesure_sql)
                     )
-                    print(f"Mesure insérée pour {cheminee_id} avec mesure_id={mesure_id} et date={date_mesure_sql}")
+                    mesures_added += 1
+                    print(f"Client: '{client_acronym}', Cheminée: '{cheminee_id}', date de mesure: '{date_mesure_sql}', mesure_id: {mesure_id} : ajoutée à la BDD.")
 
                 # Exception handling for duplicate entries
                 except Exception as e:
                     print(f"Erreur lors de l'insertion de la mesure pour {cheminee_id} : {e}")
         conn.commit()
+
+        # Count the total number of measures in the database
+        cur.execute("SELECT COUNT(*) FROM mesures")
+        total_mesures = cur.fetchone()[0]
+        print(f"\nNombre de combinaison client/cheminée/date ajoutée(s) dans la BDD : {mesures_added}")
+        print(f"Nombre total de combinaison client/cheminée/date dans la BDD : {total_mesures}")
+        print("\n" + "." * 75)
 
     # Error handling for connection issues
     except Exception as e:
@@ -960,3 +1001,12 @@ def print_step(step_num, message):
     print("\n\n" + "*" * 75)
     print(f"==> STEP {step_num} : {message} <==")
     print("*" * 75)
+
+
+def calculate_duration(start_time):
+    """
+    This function calculates and displays the execution duration of scripts.
+    It prints the duration in minutes and seconds.
+    """
+    minutes, seconds = divmod(time.time() - start_time, 60)
+    print(f"\nDurée execution script : {int(minutes)} min {int(seconds)} sec")
