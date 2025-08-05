@@ -1,5 +1,6 @@
 """
-Ce fichier contient des fonctions utilitaires pour le traitement d'images et la reconnaissance de caractères.
+Ce fichier contient des fonctions utilitaires pour le traitement d'images et
+la reconnaissance de caractères.
 
 Auteurs :
 Pierrick BERTHE
@@ -73,7 +74,10 @@ def get_user_inputs(data_dir):
                 continue
             break
         except ValueError:
-            print("Format incorrect ou date impossible. Veuillez entrer la date au format JJ/MM/AAAA (ex. 30/06/2025).")
+            print(
+                "Format incorrect ou date impossible. "
+                "Veuillez entrer la date au format JJ/MM/AAAA (ex. 30/06/2025)."
+            )
 
     # Specify the folder to ignore
     folder_ignored = input("Entrez le nom exact du dossier à ignorer : ")
@@ -326,7 +330,9 @@ def generate_filename(
             # Add a counter to the filename if it already exists
             counter = 1
             while os.path.exists(filepath):
-                filename = f"{client_acronym}_{chimney_name}_{counter}.{extension}"
+                filename = (
+                    f"{client_acronym}_{chimney_name}_{counter}.{extension}"
+                )
                 filepath = os.path.join(output_dir, filename)
                 counter += 1
 
@@ -421,7 +427,10 @@ def import_json_to_text(input_dir, input_file="text_extracted.json"):
     except FileNotFoundError:
         print(f"Erreur : Le fichier '{file_path}' n'existe pas.")
     except json.JSONDecodeError:
-        print(f"Erreur : Le fichier '{file_path}' n'est pas un fichier JSON valide.")
+        print(
+            f"Erreur : Le fichier '{file_path}' n'est pas "
+            "un fichier JSON valide."
+        )
     except Exception as e:
         print(f"Erreur inattendue lors de l'importation du fichier JSON : {e}")
 
@@ -504,7 +513,10 @@ def save_to_json(data, output_dir, filename):
     except FileNotFoundError:
         print(f"Erreur : Le répertoire de sortie '{output_dir}' n'existe pas.")
     except PermissionError:
-        print(f"Erreur : Permission refusée pour écrire dans le répertoire '{output_dir}'.")
+        print(
+            f"Erreur : Permission refusée pour écrire "
+            f"dans le répertoire '{output_dir}'."
+        )
     except Exception as e:
         print(f"Erreur inattendue lors de la sauvegarde du fichier JSON : {e}")
     finally:
@@ -550,7 +562,7 @@ def compress_image(
             image = np.array(img)
     except Exception as e:
         print(f"Erreur : Impossible de charger l'image {image_path} : {e}")
-        return image_path
+        return None
 
     # Obtain picture dimension
     height, width = image.shape[:2]
@@ -561,13 +573,21 @@ def compress_image(
     new_height = int(height * scale)
 
     # Resize picture
-    resized_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    resized_image = cv2.resize(
+        image,
+        (new_width, new_height),
+        interpolation=cv2.INTER_AREA
+    )
 
     # Temporary file path fo compressed picture
     compressed_image_path = os.path.join(temp_dir, "temp_compressed_image.jpg")
 
     # Save compressed picture with reducted quality
-    cv2.imwrite(compressed_image_path, resized_image, [cv2.IMWRITE_JPEG_QUALITY, quality])
+    cv2.imwrite(
+        compressed_image_path,
+        resized_image,
+        [cv2.IMWRITE_JPEG_QUALITY, quality]
+    )
 
     return compressed_image_path
 
@@ -600,6 +620,25 @@ def add_page_number_field(paragraph):
     run._r.append(fldChar_begin2)
     run._r.append(instrText2)
     run._r.append(fldChar_end2)
+
+
+def add_picture_to_paragraph(paragraph, image_path, width=Inches(1.5)):
+    """
+    Ajoute une image à un paragraphe Word, ou un texte si l'image est
+    indisponible.
+    """
+    run = paragraph.add_run()
+    try:
+        if image_path is not None:
+            run.add_picture(image_path, width=width)
+        else:
+            paragraph.add_run("Image non disponible")
+    except Exception as e:
+        print(
+            "Erreur lors de l'ajout de l'image dans le "
+            f"rapport Word : {e}"
+        )
+        paragraph.add_run("Image non disponible")
 
 
 def generate_word_report(
@@ -695,11 +734,10 @@ def generate_word_report(
                 # Photo column
                 image_path = os.path.join(input_dir, key, file)
                 if os.path.exists(image_path):
-                    compressed_image_path = compress_image(image_path, temp_dir)
+                    compressed_image_path = compress_image(image_path,temp_dir)
                     cell = table.cell(i, 1)
                     paragraph = cell.paragraphs[0]
-                    run = paragraph.add_run()
-                    run.add_picture(compressed_image_path, width=Inches(1.5))
+                    add_picture_to_paragraph(paragraph, compressed_image_path)
                     paragraph.paragraph_format.space_before = Pt(4)
                     paragraph.paragraph_format.space_after = Pt(4)
 
@@ -796,12 +834,18 @@ def insert_client_into_db(bdd_path, client_acronym, client_name):
                 (client_acronym, client_name)
             )
             conn.commit()
-            print(f"Client '{client_name}', acronym '{client_acronym}' : ajouté à la BDD.\n")
+            print(
+                f"Client '{client_name}', acronym '{client_acronym}' : "
+                f"ajouté à la BDD.\n"
+            )
             client_added = True
 
         # If the client already exists, print a message
         except sqlite3.IntegrityError:
-            print(f"Client '{client_name}', acronym '{client_acronym}' : existant déjà dans la BDD.\n")
+            print(
+                f"Client '{client_name}', acronym '{client_acronym}' : "
+                f"existant déjà dans la BDD.\n"
+            )
 
         # Print error if insertion fails
         except Exception as e:
@@ -859,24 +903,50 @@ def insert_cheminee_into_db(bdd_path, client_acronym, data_per_chimney):
                 # Insert the chimney data into the table
                 try:
                     cur.execute(
-                        "INSERT INTO cheminees (client_id, cheminee_id, localisation, remarques) VALUES (?, ?, ?, ?)",
-                        (client_acronym, cheminee_id, max_length_word, remarques)
+                        "INSERT INTO cheminees "
+                        "(client_id, cheminee_id, localisation, remarques) "
+                        "VALUES (?, ?, ?, ?)",
+                        (
+                            client_acronym,
+                            cheminee_id,
+                            max_length_word,
+                            remarques
+                        )
                     )
                     cheminees_added += 1
-                    print(f"Client: '{client_acronym}', Cheminée: '{cheminee_id}', Localisation: '{max_length_word}' : ajoutée à la BDD.")
+                    print(
+                        f"Client: '{client_acronym}', "
+                        f"Cheminée: '{cheminee_id}', "
+                        f"Localisation: '{max_length_word}' : "
+                        "ajoutée à la BDD."
+                    )
 
                 # Exception handling for duplicate entries
                 except sqlite3.IntegrityError:
-                    print(f"Client: '{client_acronym}', Cheminée: '{cheminee_id}', Localisation: '{max_length_word}' : existe déjà dans la BDD.")
+                    print(
+                        f"Client: '{client_acronym}', "
+                        f"Cheminée: '{cheminee_id}', "
+                        f"Localisation: '{max_length_word}' : "
+                        "existe déjà dans la BDD."
+                    )
                 except Exception as e:
-                    print(f"Erreur lors de l'insertion de la cheminée {cheminee_id} : {e}")
+                    print(
+                        "Erreur lors de l'insertion de la cheminée "
+                        f"{cheminee_id} : {e}"
+                    )
         conn.commit()
 
         # Count the total number of chimneys in the database
         cur.execute("SELECT COUNT(*) FROM cheminees")
         total_cheminees = cur.fetchone()[0]
-        print(f"\nNombre de combinaison client/cheminée/localisation ajoutée(s) dans la BDD : {cheminees_added}")
-        print(f"Nombre total de combinaison client/cheminée/localisation dans la BDD : {total_cheminees}")
+        print(
+            "\nNombre de combinaison client/cheminée/localisation "
+            f"ajoutée(s) dans la BDD : {cheminees_added}"
+        )
+        print(
+            "Nombre total de combinaison client/cheminée/localisation "
+            f"dans la BDD : {total_cheminees}"
+        )
         print("\n" + "." * 75)
 
     # Error handling for connection issues
@@ -944,7 +1014,10 @@ def insert_mesure_into_db(
                     mesure_id = 1
                 else:
                     # If the current date is newer, increment mesure_id
-                    if last_date_in_db is not None and date_mesure_sql > last_date_in_db:
+                    if (
+                        last_date_in_db is not None
+                        and date_mesure_sql > last_date_in_db
+                    ):
                         mesure_id = last_mesure_id + 1
                     else:
                         mesure_id = last_mesure_id
@@ -958,28 +1031,55 @@ def insert_mesure_into_db(
 
                 # If the measure already exists, skip to the next
                 if exists:
-                    print(f"Client: '{client_acronym}', Cheminée: '{cheminee_id}', date de mesure: '{date_mesure_sql}', mesure_id: {mesure_id} : déjà existante dans la BDD.")
+                    print(
+                        f"Client: '{client_acronym}', "
+                        f"Cheminée: '{cheminee_id}', "
+                        f"date de mesure: '{date_mesure_sql}', "
+                        f"mesure_id: {mesure_id} : "
+                        "déjà existante dans la BDD."
+                    )
                     continue
 
                 # Insert the measure into the table
                 try:
                     cur.execute(
-                        "INSERT INTO mesures (client_id, cheminee_id, mesure_id, date_mesure) VALUES (?, ?, ?, ?)",
-                        (client_acronym, cheminee_id, mesure_id, date_mesure_sql)
+                        "INSERT INTO mesures "
+                        "(client_id, cheminee_id, mesure_id, date_mesure) "
+                        "VALUES (?, ?, ?, ?)",
+                        (
+                            client_acronym,
+                            cheminee_id,
+                            mesure_id,
+                            date_mesure_sql
+                        )
                     )
                     mesures_added += 1
-                    print(f"Client: '{client_acronym}', Cheminée: '{cheminee_id}', date de mesure: '{date_mesure_sql}', mesure_id: {mesure_id} : ajoutée à la BDD.")
+                    print(
+                        f"Client: '{client_acronym}', "
+                        f"Cheminée: '{cheminee_id}', "
+                        f"date de mesure: '{date_mesure_sql}', "
+                        f"mesure_id: {mesure_id} : ajoutée à la BDD."
+                    )
 
                 # Exception handling for duplicate entries
                 except Exception as e:
-                    print(f"Erreur lors de l'insertion de la mesure pour {cheminee_id} : {e}")
+                    print(
+                        "Erreur lors de l'insertion de la mesure pour "
+                        f"{cheminee_id} : {e}"
+                    )
         conn.commit()
 
         # Count the total number of measures in the database
         cur.execute("SELECT COUNT(*) FROM mesures")
         total_mesures = cur.fetchone()[0]
-        print(f"\nNombre de combinaison client/cheminée/date ajoutée(s) dans la BDD : {mesures_added}")
-        print(f"Nombre total de combinaison client/cheminée/date dans la BDD : {total_mesures}")
+        print(
+            "\nNombre de combinaison client/cheminée/date ajoutée(s) "
+            f"dans la BDD : {mesures_added}"
+        )
+        print(
+            "Nombre total de combinaison client/cheminée/date dans la BDD : "
+            f"{total_mesures}"
+        )
         print("\n" + "." * 75)
 
     # Error handling for connection issues

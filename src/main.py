@@ -79,7 +79,12 @@ if __name__ == "__main__":
     sys.stdout = sys.__stdout__ 
 
     # Input from the user
-    client_acronym, date_mesure, folder_ignored, folder_ignored_dir = func.get_user_inputs(data_dir)
+    (
+        client_acronym,
+        date_mesure,
+        folder_ignored,
+        folder_ignored_dir
+    ) = func.get_user_inputs(data_dir)
 
     # Activate the logger again
     sys.stdout = old_stdout
@@ -89,12 +94,6 @@ if __name__ == "__main__":
     print("client_acronym     : " + client_acronym)
     print("date_mesure        : " + date_mesure)
     print("folder_ignored_dir : " + folder_ignored_dir)
-
-    # # DEV
-    # client_acronym = "tde"
-    # date_mesure = "11/07/2025"
-    # folder_ignored = "2 - Conduits"
-    # folder_ignored_dir = os.path.join(data_dir, folder_ignored)
 
     ##################### TEXT EXTRACTION #####################
     # Print the step
@@ -135,7 +134,9 @@ if __name__ == "__main__":
                     image_processed_path = os.path.join(
                         temp_dir, "image_processed.jpg"
                     )
-                    image_resized_path = os.path.join(temp_dir, "resized_image.jpg")
+                    image_resized_path = os.path.join(
+                        temp_dir, "resized_image.jpg"
+                    )
 
                     # Process the image
                     image_processed = func.preprocess_black_text(
@@ -167,6 +168,9 @@ if __name__ == "__main__":
                     # Save the text in the dictionary
                     text_extracted[subdir][file] = text
 
+        # space for better readability
+        print("")
+
         # ExportJSON
         func.export_text_to_json(
         text_extracted,
@@ -180,7 +184,9 @@ if __name__ == "__main__":
             output_json_dir,
             input_file=output_file_name
         )
-        print("Le fichier JSON d'extraction de texte existe déjà, il est importé.")
+        print(
+            "Le fichier JSON d'extraction de texte existe déjà, il est importé."
+        )
 
     ##################### COPY FILES WITH MAPPING #####################
     # Print the step
@@ -213,7 +219,9 @@ if __name__ == "__main__":
     data_per_chimney = func.group_by_chimney_name(key_info_dict, pattern)
 
     # save the data to JSON file
-    func.save_to_json(data_per_chimney, output_json_dir, "data_per_chimney.json")
+    func.save_to_json(
+        data_per_chimney, output_json_dir, "data_per_chimney.json"
+    )
 
     #####################  GET CLIENT NAME #############################
     # Print the step
