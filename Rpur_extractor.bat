@@ -1,11 +1,8 @@
 @echo off
-REM Activate the virtual environment
-call C:\Users\pierr\VSC_Projects\Rpur\.env\Scripts\activate.bat
-
-REM Change to the script directory
+REM Se placer dans le dossier du script
 cd /d C:\Users\pierr\VSC_Projects\Rpur\src
 
-REM Run the Python script
-python main.py
+REM Lancer le script Python avec l'environnement Poetry
+poetry run python main.py
 
 pause
