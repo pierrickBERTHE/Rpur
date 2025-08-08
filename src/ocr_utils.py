@@ -141,10 +141,13 @@ def resize_image(input_path, output_path, scale_percent=10):
     """
     Resize an image to a given percentage of its original size.
     """
-    # load the image
-    image = cv2.imread(input_path)
-    if image is None:
-        print(f"Erreur : Impossible de charger l'image {input_path}")
+    try:
+        # Load the image with PIL and convert to RGB then to numpy array
+        with Image.open(input_path) as img:
+            img = img.convert("RGB")
+            image = np.array(img)
+    except Exception as e:
+        print(f"Erreur : Impossible de charger l'image {input_path} : {e}")
         return None
 
     # Calculate the new dimensions
@@ -579,13 +582,16 @@ def compress_image(
         interpolation=cv2.INTER_AREA
     )
 
+    # Convert BGR -> RGB before saving
+    resized_image_rgb = cv2.cvtColor(resized_image, cv2.COLOR_RGB2BGR)
+
     # Temporary file path fo compressed picture
     compressed_image_path = os.path.join(temp_dir, "temp_compressed_image.jpg")
 
     # Save compressed picture with reducted quality
     cv2.imwrite(
         compressed_image_path,
-        resized_image,
+        resized_image_rgb,
         [cv2.IMWRITE_JPEG_QUALITY, quality]
     )
 
@@ -673,22 +679,20 @@ def generate_word_report(
     title = document.add_paragraph()
     title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     run = title.add_run(
-        "Annexe photo rapport diagnostic en entretien 3CEP - 2025"
+        "Rapport photos inspection 3CEP\n"
+        f"{client_name.capitalize()}\n{datetime.datetime.now().year}"
     )
     run.bold = True
     run.font.size = Pt(16)
 
-    # Add the centered subtitle
-    subtitle = document.add_paragraph()
-    subtitle.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    run = subtitle.add_run(client_name.capitalize())
-    run.bold = True
-    run.font.size = Pt(14)
-
-    # === ADD PAGE NUMBER AT THE BOTTOM ===
+    # Add footer with company information and page numbers
     footer = section.footer
     footer_paragraph = footer.paragraphs[0]
     footer_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    footer_paragraph.add_run(
+        "SARL R'PUR Conduits Collectifs - N° RCS : 985027986 - \nLe présent"
+        " rapport rend comptes des éléments vus, visitables et déclarés par "
+        "l'exploitant.\n")
     add_page_number_field(footer_paragraph)
 
     # Loop through chimneys and their information

@@ -1,5 +1,7 @@
 /data/
 /.env/
 /doc/
-/.vs
+.vs
 /bdd/
+src/__pycache__/
+src/*.pyc

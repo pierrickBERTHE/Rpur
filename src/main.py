@@ -27,6 +27,7 @@ if __name__ == "__main__":
     output_dir = os.path.join(project_dir, "data\\output")
     output_json_dir = os.path.join(output_dir, "json")
     output_folder_dir = os.path.join(output_dir, "folder_output")
+    output_log_dir = os.path.join(output_dir, "log")
     temp_dir = os.path.join(output_dir, "temp")
     logo_dir = os.path.join(project_dir, "image")
     bdd_dir = os.path.join(project_dir, "bdd")
@@ -38,6 +39,7 @@ if __name__ == "__main__":
         logo_dir,
         bdd_dir,
         output_json_dir,
+        output_log_dir,
         output_folder_dir,
         temp_dir
     )
@@ -46,7 +48,7 @@ if __name__ == "__main__":
     IS_CORRECT_TEXT_FRENCH = False
 
     # Redirect all prints to a log file
-    sys.stdout = func.Logger(os.path.join(output_json_dir, "process_log.txt"))
+    sys.stdout = func.Logger(os.path.join(output_log_dir, "process_log.txt"))
     
     print("Démarrage du script principal...")
 
@@ -119,7 +121,7 @@ if __name__ == "__main__":
 
             # Skip the ignored folder with empty text
             if subdir == folder_ignored_dir or subdir == folder_ignored:
-                print(f" Dossier ignoré : '{subdir}'")
+                print(f"\nDossier ignoré : '{subdir}'")
                 for file in files:
                     text_extracted[subdir][file] = ""
 
