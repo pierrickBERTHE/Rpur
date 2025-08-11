@@ -16,6 +16,7 @@ import datetime
 import time
 import importlib.metadata
 import PIL
+import warnings
 
 if __name__ == "__main__":
 
@@ -46,6 +47,9 @@ if __name__ == "__main__":
 
     # Define a flag to indicate if the French text correction is needed
     IS_CORRECT_TEXT_FRENCH = False
+
+    # Ignore specific warnings
+    warnings.filterwarnings("ignore", message=".*pin_memory.*")
 
     # Redirect all prints to a log file
     sys.stdout = func.Logger(os.path.join(output_log_dir, "process_log.txt"))
