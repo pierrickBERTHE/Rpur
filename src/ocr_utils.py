@@ -180,10 +180,11 @@ def measure_time(func):
 @measure_time
 def extract_text_easyocr(
     image_path,
-    batch_size=1,
-    decoder='greedy',
-    adjust_contrast=True,
-    worker=0
+    batch_size,
+    decoder,
+    adjust_contrast,
+    worker,
+    gpu_state
 ):
     """
     Extract text from image using EasyOCR
@@ -195,7 +196,7 @@ def extract_text_easyocr(
     )
 
     # Execute OCR
-    reader = easyocr.Reader(['fr'], gpu=False, verbose=False)
+    reader = easyocr.Reader(['fr'], gpu=gpu_state, verbose=False)
     text = reader.readtext(
         image_path,
         detail=0,

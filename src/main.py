@@ -45,15 +45,23 @@ if __name__ == "__main__":
         temp_dir
     )
 
-    # Define a flag to indicate if the French text correction is needed
+    # Define some flags
     IS_CORRECT_TEXT_FRENCH = False
+    USE_GPU_FOR_OCR = False
+    GENERATE_WORD_REPORT = True
+    INSERT_IN_DATABASE = True
+    CLEANUP_TEMP_FILES = True
+    LOG_TO_FILE = True
 
     # Ignore specific warnings
     warnings.filterwarnings("ignore", message=".*pin_memory.*")
 
     # Redirect all prints to a log file
-    sys.stdout = func.Logger(os.path.join(output_log_dir, "process_log.txt"))
-    
+    if LOG_TO_FILE:
+        sys.stdout = func.Logger(
+            os.path.join(output_log_dir, "process_log.txt")
+        )
+
     print("Démarrage du script principal...")
 
     ###################### PRINT LIBRAIRIES VERSIONS #####################
@@ -70,6 +78,7 @@ if __name__ == "__main__":
     print("Numpy         : " + func.np.__version__)
     print("Pandas        : " + func.pd.__version__)
     print("Pillow        : " + PIL.__version__)
+    print("Pytorch       : " + importlib.metadata.version("torch"))
     print("OpenCV        : " + func.cv2.__version__)
     print("TQDM          : " + importlib.metadata.version("tqdm"))
 
@@ -162,7 +171,8 @@ if __name__ == "__main__":
                         batch_size=best_params["batch_size"],
                         decoder=best_params["decoder"],
                         adjust_contrast=best_params["adjust_contrast"],
-                        worker=best_params["worker"]
+                        worker=best_params["worker"],
+                        gpu_state=USE_GPU_FOR_OCR
                     )
 
                     # Clean the french text
@@ -191,7 +201,7 @@ if __name__ == "__main__":
             input_file=output_file_name
         )
         print(
-            "Le fichier JSON d'extraction de texte existe déjà, il est importé."
+            "Le fichier JSON d'extraction de texte existe déjà, il est importé"
         )
 
     ##################### COPY FILES WITH MAPPING #####################
@@ -239,41 +249,45 @@ if __name__ == "__main__":
     print(f"\nClient name: {client_name}")
 
     ##################### WORD REPORT #################################
-    # Print the step
-    func.print_step(5, "Génération du rapport Word")
+    if GENERATE_WORD_REPORT:
+        # Print the step
+        func.print_step(5, "Génération du rapport Word")
 
-    # Generate word report
-    func.generate_word_report(
-        data_per_chimney,
-        data_dir,
-        output_dir,
-        temp_dir,
-        client_name,
-        files_by_subdir,
-        logo_path=os.path.join(logo_dir, "logo_rpur.png"),
-    )
+        # Generate word report
+        func.generate_word_report(
+            data_per_chimney,
+            data_dir,
+            output_dir,
+            temp_dir,
+            client_name,
+            files_by_subdir,
+            logo_path=os.path.join(logo_dir, "logo_rpur.png"),
+        )
 
     ##################### DATABASE IMPLEMENTATION ##########################
-    # Print the step
-    func.print_step(6, "Insertion des données dans la base de données")
+    if INSERT_IN_DATABASE:
+        # Print the step
+        func.print_step(6, "Insertion des données dans la base de données")
 
-    # Create the database and tables
-    bdd_path = func.create_database_and_tables(bdd_dir)
+        # Create the database and tables
+        bdd_path = func.create_database_and_tables(bdd_dir)
 
-    # Insert data into the database
-    func.insert_client_into_db(bdd_path, client_acronym, client_name)
-    func.insert_cheminee_into_db(bdd_path, client_acronym, data_per_chimney)
-    func.insert_mesure_into_db(
-            bdd_path,
-            client_acronym,
-            data_per_chimney,
-            date_mesure
+        # Insert data into the database
+        func.insert_client_into_db(bdd_path, client_acronym, client_name)
+        func.insert_cheminee_into_db(
+            bdd_path, client_acronym, data_per_chimney
         )
+        func.insert_mesure_into_db(
+                bdd_path,
+                client_acronym,
+                data_per_chimney,
+                date_mesure
+            )
 
     ##################### FINAL CLEANUP ##########################
 
     # Delete temporary directory
-    if os.path.exists(temp_dir):
+    if CLEANUP_TEMP_FILES and os.path.exists(temp_dir):
         for file in os.listdir(temp_dir):
             file_path = os.path.join(temp_dir, file)
             if os.path.isfile(file_path):
