@@ -655,6 +655,7 @@ def generate_word_report(
         temp_dir,
         client_name,
         files_by_subdir,
+        date_mesure,
         logo_path,
         output_file_name="rapport_extraction.docx"
     ):
@@ -676,12 +677,17 @@ def generate_word_report(
         run = header_paragraph.add_run()
         run.add_picture(logo_path, width=Inches(1.0))
 
+    # Add "rapport d'inspection" to the right of the header
+    right_header_paragraph = header.add_paragraph()
+    right_header_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+    right_header_paragraph.add_run("Annexe inspection R'PUR CC").bold = True
+
     # Add the main centered title
     title = document.add_paragraph()
     title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     run = title.add_run(
         "Rapport photos inspection 3CEP\n"
-        f"{client_name.capitalize()}\n{datetime.datetime.now().year}"
+        f"{client_name.capitalize()}\n{date_mesure}"
     )
     run.bold = True
     run.font.size = Pt(16)
@@ -691,9 +697,8 @@ def generate_word_report(
     footer_paragraph = footer.paragraphs[0]
     footer_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     footer_paragraph.add_run(
-        "SARL R'PUR Conduits Collectifs - N° RCS : 985027986 - \nLe présent"
-        " rapport rend comptes des éléments vus, visitables et déclarés par "
-        "l'exploitant.\n")
+        "SARL R'PUR Conduits Collectifs \nLe présent rapport rend comptes des "
+        "éléments vus, visitables et déclarés par l'exploitant.\n")
     add_page_number_field(footer_paragraph)
 
     # Loop through chimneys and their information

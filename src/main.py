@@ -206,7 +206,7 @@ if __name__ == "__main__":
 
     ##################### COPY FILES WITH MAPPING #####################
     # Print the step
-    func.print_step(2, "Importation du fichier JSON de mapping des clés")
+    func.print_step(2, "Copie des fichiers avec mapping")
 
     # Convert date_mesure to datetime object
     date_obj = datetime.datetime.strptime(date_mesure, "%d/%m/%Y")
@@ -261,6 +261,7 @@ if __name__ == "__main__":
             temp_dir,
             client_name,
             files_by_subdir,
+            date_mesure,
             logo_path=os.path.join(logo_dir, "logo_rpur.png"),
         )
 
