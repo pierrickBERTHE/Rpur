@@ -4,7 +4,7 @@ Ce fichier contient le script principal pour le projet OCR.
 Auteurs :
 Pierrick BERTHE
 mail : pierrick.berthe@gmx.fr
-Avril 2025
+Août 2025
 """
 # Import necessary libraries
 import os
@@ -62,7 +62,20 @@ if __name__ == "__main__":
             os.path.join(output_log_dir, "process_log.txt")
         )
 
+    # Print the start message
     print("Démarrage du script principal...")
+
+    # print the git version
+    git_version = func.get_git_version()
+    print(func.format_git_version(git_version))
+
+    # Print all flags
+    print("\nflags :")
+    print("IS_CORRECT_TEXT_FRENCH :", IS_CORRECT_TEXT_FRENCH)
+    print("USE_GPU_FOR_OCR        :", USE_GPU_FOR_OCR)
+    print("GENERATE_WORD_REPORT   :", GENERATE_WORD_REPORT)
+    print("INSERT_IN_DATABASE     :", INSERT_IN_DATABASE)
+    print("CLEANUP_TEMP_FILES     :", CLEANUP_TEMP_FILES)
 
     ###################### PRINT LIBRAIRIES VERSIONS #####################
 
@@ -79,7 +92,7 @@ if __name__ == "__main__":
     print("Pandas        : " + func.pd.__version__)
     print("Pillow        : " + PIL.__version__)
     print("Pytorch       : " + importlib.metadata.version("torch"))
-    print("OpenCV        : " + func.cv2.__version__)
+    print("OpenCV        : " + func.cv2.__version__) #pylint: disable=no-member
     print("TQDM          : " + importlib.metadata.version("tqdm"))
 
     # Print time

@@ -10,7 +10,7 @@ que vous faites.
 Auteurs :
 Pierrick BERTHE
 mail : pierrick.berthe@gmx.fr
-Avril 2025
+Août 2025
 """
 
 # Parameters for image processing and OCR

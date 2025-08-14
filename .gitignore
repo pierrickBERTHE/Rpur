@@ -1,5 +1,10 @@
-/doc/
+# Keep only the necessary files
+/doc/*
+!/doc/livrables_client
 .vs
 /bdd/
-src/__pycache__/
-src/*.pyc
+/data/*
+!/data/input/source/.gitkeep
+!/data/output/.gitkeep
+src\__pycache__\
+src\*.pyc

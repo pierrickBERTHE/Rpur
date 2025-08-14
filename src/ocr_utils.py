@@ -5,7 +5,7 @@ la reconnaissance de caractères.
 Auteurs :
 Pierrick BERTHE
 mail : pierrick.berthe@gmx.fr
-Avril 2025
+Août 2025
 """
 
 import datetime
@@ -28,6 +28,7 @@ from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.shared import Pt
 import sqlite3
+import subprocess
 
 
 # pylint: disable=no-member
@@ -43,6 +44,41 @@ class Logger(object):
         self.log.write(message)
     def flush(self):
         pass
+
+
+def get_git_version():
+    """
+    Get the current git version.
+    """
+    try:
+        # Get the current git version
+        version = subprocess.check_output(
+            ["git", "describe", "--tags", "--always"],
+            stderr=subprocess.STDOUT
+        ).decode().strip()
+        return version
+    except Exception:
+        return "version inconnue"
+
+
+def format_git_version(version_str):
+    """
+    Format the git version string.
+    """
+    # split the version string
+    parts = version_str.split('-')
+
+    # Check the number of parts
+    if len(parts) == 1:
+        return f"Version : {parts[0]}"
+    elif len(parts) == 3:
+        tag, commits, commit_hash = parts
+        return (
+            f"Version : {tag} ({commits} commits après le tag,"
+            f" commit {commit_hash})"
+        )
+    else:
+        return f"Version : {version_str}"
 
 
 def check_and_create_directories(*dirs):

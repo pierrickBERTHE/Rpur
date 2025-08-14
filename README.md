@@ -1,12 +1,12 @@
 # Rpur OCR - Utilitaires et Script Principal
 
-Ce projet propose un ensemble de scripts pour l’extraction de texte à partir d’images, la génération de rapports Word, et la gestion d’une base de données pour le suivi d’inspections de cheminées.
+Ce projet est une solution d’ETL (Extract, Transform, Load) spécialisée en OCR (reconnaissance optique de caractères) : il permet d’extraire du texte à partir d’images, de transformer et structurer ces données, puis de générer des rapports Word et d’alimenter une base de données pour le suivi d’inspections de cheminées.
 
 ## Auteur
 
 - Pierrick BERTHE  
 - pierrick.berthe@gmx.fr  
-- Avril 2025
+- Août 2025
 
 ---
 
@@ -80,16 +80,22 @@ Rpur_extractor.bat
 
 ```
 Rpur/
-├── data/
-│   └── input/source/      # Images à traiter
-├── image/                 # Logo
-├── src/
-│   ├── main.py
-│   └── ocr_utils.py
 ├── bdd/                   # Base de données SQLite
-├── Rpur_extractor.bat     # Script de lancement
+├── data/
+│   ├── input/source/      # Images à traiter
+│   └── output/            # Résultats du traitement
+├── doc/                   # Documentation
+├── image/                 # Logo
+├── notebook/              # Notebooks de POC
+├── src/
+│   ├── config.py          # Configuration des paramètres
+│   ├── main.py            # Script principal
+│   └── ocr_utils.py       # Fonctions utilitaires pour l'OCR
+├── .gitignore              # Fichiers et dossiers à ignorer par Git
+├── poetry.lock             # Verrouillage des dépendances
 ├── pyproject.toml
-└── README.md
+├──  README.md
+├──  Rpur_extractor.bat     # Script de lancement
 ```
 
 ---
