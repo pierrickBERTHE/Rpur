@@ -114,34 +114,29 @@ Rpur/
 
 ## Modélisation de la base de donnée
 
-┌───────────────────┐
-│     clients       │
-├───────────────────┤
-│ client_id (PK)    │
-│ nom               │
-└───────────────────┘
-          1
-          │
-          n
-┌────────────────────────────────────────┐
-│               cheminees                 │
-├────────────────────────────────────────┤
-│ cheminee_id (PK)                        │
-│ client_id (FK → clients.client_id)      │
-│ localisation (PK)                       │
-│ remarques                               │
-└────────────────────────────────────────┘
-          1
-          │
-          n
-┌───────────────────────────────────────────────┐
-│                   mesures                      │
-├───────────────────────────────────────────────┤
-│ mesure_id (PK)                                │
-│ client_id (FK → clients.client_id)            │
-│ cheminee_id (FK → cheminees.cheminee_id)      │
-│ date_mesure                                   │
-└───────────────────────────────────────────────┘
+erDiagram
+    CLIENTS ||--o{ CHEMINEES : possede
+    CHEMINEES ||--o{ MESURES  : a
+    CLIENTS  ||--o{ MESURES   : concerne
+
+    CLIENTS {
+      TEXT client_id PK
+      TEXT nom
+    }
+
+    CHEMINEES {
+      TEXT cheminee_id PK
+      TEXT client_id  FK
+      TEXT localisation PK
+      TEXT remarques
+    }
+
+    MESURES {
+      INT  mesure_id PK
+      TEXT client_id  FK
+      TEXT cheminee_id FK
+      DATETIME date_mesure
+    }
 
 
 ---
