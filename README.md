@@ -117,33 +117,32 @@ Rpur/
 ┌───────────────────┐
 │     clients       │
 ├───────────────────┤
-│ client_id   (PK)  │
+│ client_id (PK)    │
 │ nom               │
 └───────────────────┘
-          │ 1
+          1
           │
-          │ n
-          ▼
+          n
 ┌────────────────────────────────────────┐
-│               cheminees                │
+│               cheminees                 │
 ├────────────────────────────────────────┤
-│ cheminee_id   (PK)                     │
-│ client_id     (FK → clients.client_id) │
-│ localisation  (PK)                     │
-│ remarques                              │
+│ cheminee_id (PK)                        │
+│ client_id (FK → clients.client_id)      │
+│ localisation (PK)                       │
+│ remarques                               │
 └────────────────────────────────────────┘
-          │ 1
+          1
           │
-          │ n
-          ▼
+          n
 ┌───────────────────────────────────────────────┐
-│                  mesures                      │
+│                   mesures                      │
 ├───────────────────────────────────────────────┤
-│ mesure_id    (PK)                             │
-│ client_id   (FK → clients.client_id)          │
-│ cheminee_id  (FK → cheminees.cheminee_id)     │
+│ mesure_id (PK)                                │
+│ client_id (FK → clients.client_id)            │
+│ cheminee_id (FK → cheminees.cheminee_id)      │
 │ date_mesure                                   │
 └───────────────────────────────────────────────┘
+
 
 ---
 
