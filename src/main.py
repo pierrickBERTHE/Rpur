@@ -7,8 +7,10 @@ mail : pierrick.berthe@gmx.fr
 Août 2025
 """
 # Import necessary libraries
+import json
 import os
 import sys
+
 import ocr_utils as func
 from config import best_params, pattern
 from tqdm import tqdm
@@ -21,30 +23,7 @@ import warnings
 if __name__ == "__main__":
 
     ##################### DIRECTORIES SETUP #####################
-
-    # parent, data et output directories
-    project_dir = os.getcwd().split("\\src")[0]
-    data_dir = os.path.join(project_dir, "data\\input\\source")
-    output_dir = os.path.join(project_dir, "data\\output")
-    output_json_dir = os.path.join(output_dir, "json")
-    output_folder_dir = os.path.join(output_dir, "folder_output")
-    output_log_dir = os.path.join(output_dir, "log")
-    temp_dir = os.path.join(output_dir, "temp")
-    logo_dir = os.path.join(project_dir, "image")
-    bdd_dir = os.path.join(project_dir, "bdd")
-
-    # Check and create directories if they do not exist
-    func.check_and_create_directories(
-        data_dir,
-        output_dir,
-        logo_dir,
-        bdd_dir,
-        output_json_dir,
-        output_log_dir,
-        output_folder_dir,
-        temp_dir
-    )
-
+    
     # Define some flags
     IS_CORRECT_TEXT_FRENCH = False
     USE_GPU_FOR_OCR = False
@@ -52,6 +31,42 @@ if __name__ == "__main__":
     INSERT_IN_DATABASE = True
     CLEANUP_TEMP_FILES = True
     LOG_TO_FILE = True
+    IS_BACKUP_CREATED = True
+
+    # Directories setup (in logical order)
+    project_dir = os.getcwd().split("\\src")[0]
+
+    # Input/output/data directories
+    data_dir = os.path.join(project_dir, "data", "input", "source")
+    output_dir = os.path.join(project_dir, "data", "output")
+    output_json_dir = os.path.join(output_dir, "json")
+    output_folder_dir = os.path.join(output_dir, "folder_output")
+    output_log_dir = os.path.join(output_dir, "log")
+    temp_dir = os.path.join(output_dir, "temp")
+
+    # Other project directories
+    logo_dir = os.path.join(project_dir, "image")
+    bdd_dir = os.path.join(project_dir, "bdd")
+
+    # Backup directories (outside project_dir)
+    backup_dir = os.path.join(os.path.dirname(project_dir), "backup")
+    bdd_backup_dir = os.path.join(backup_dir, "bdd")
+    word_backup_dir = os.path.join(backup_dir, "word")
+
+    # Check and create all directories if they do not exist
+    func.check_and_create_directories(
+        data_dir,
+        output_dir,
+        output_json_dir,
+        output_folder_dir,
+        output_log_dir,
+        temp_dir,
+        logo_dir,
+        bdd_dir,
+        backup_dir,
+        bdd_backup_dir,
+        word_backup_dir
+    )
 
     # Ignore specific warnings
     warnings.filterwarnings("ignore", message=".*pin_memory.*")
@@ -63,7 +78,18 @@ if __name__ == "__main__":
         )
 
     # Print the start message
-    print("Démarrage du script principal...")
+    print("""
+    *****************************************
+    *                                       *
+    *   RRRRR    PPPPP    U   U    RRRRR    *
+    *   R   R    P   P    U   U    R   R    *
+    *   RRRRR    PPPPP    U   U    RRRRR    *
+    *   R  R     P        U   U    R  R     *
+    *   R   R    P         UUU     R   R    *
+    *                                       *
+    *****************************************
+    """
+    )
 
     # print the git version
     git_version = func.get_git_version()
@@ -76,6 +102,8 @@ if __name__ == "__main__":
     print("GENERATE_WORD_REPORT   :", GENERATE_WORD_REPORT)
     print("INSERT_IN_DATABASE     :", INSERT_IN_DATABASE)
     print("CLEANUP_TEMP_FILES     :", CLEANUP_TEMP_FILES)
+    print("LOG_TO_FILE            :", LOG_TO_FILE)
+    print("IS_BACKUP_CREATED      :", IS_BACKUP_CREATED)
 
     ###################### PRINT LIBRAIRIES VERSIONS #####################
 
@@ -96,15 +124,14 @@ if __name__ == "__main__":
     print("TQDM          : " + importlib.metadata.version("tqdm"))
 
     # Print time
-    start_time = time.time()
     now = datetime.datetime.now().isoformat()
     print("\nCode lance le : " + now + "\n")
 
     ##################### INPUT USER #####################
-
-    # Save the current stdout to restore it later
-    old_stdout = sys.stdout
-    sys.stdout = sys.__stdout__ 
+    if LOG_TO_FILE:
+        # Save the current stdout to restore it later
+        old_stdout = sys.stdout
+        sys.stdout = sys.__stdout__ 
 
     # Input from the user
     (
@@ -114,14 +141,18 @@ if __name__ == "__main__":
         folder_ignored_dir
     ) = func.get_user_inputs(data_dir)
 
-    # Activate the logger again
-    sys.stdout = old_stdout
+    if LOG_TO_FILE:
+        # Activate the logger again
+        sys.stdout = old_stdout
 
     # Print the inputs
     print("\nInputs:")
     print("client_acronym     : " + client_acronym)
     print("date_mesure        : " + date_mesure)
     print("folder_ignored_dir : " + folder_ignored_dir)
+
+    # Start the timer
+    start_time = time.time()
 
     ##################### TEXT EXTRACTION #####################
     # Print the step
@@ -262,12 +293,13 @@ if __name__ == "__main__":
     print(f"\nClient name: {client_name}")
 
     ##################### WORD REPORT #################################
+    output_word_report_path = None
     if GENERATE_WORD_REPORT:
         # Print the step
         func.print_step(5, "Génération du rapport Word")
 
         # Generate word report
-        func.generate_word_report(
+        output_word_report_path = func.generate_word_report(
             data_per_chimney,
             data_dir,
             output_dir,
@@ -298,8 +330,21 @@ if __name__ == "__main__":
                 date_mesure
             )
 
-    ##################### FINAL CLEANUP ##########################
+##################### BACKUP ################################
+    # Print the step
+    func.print_step(7, "Création des sauvegardes")
 
+    # Backup the database and word report
+    if IS_BACKUP_CREATED:
+        func.backup_database(bdd_path, backup_dir=bdd_backup_dir)
+        func.backup_word_report(
+            output_word_report_path,
+            word_backup_dir,
+            client_acronym,
+            date_mesure
+        )
+
+    ##################### FINAL CLEANUP ##########################
     # Delete temporary directory
     if CLEANUP_TEMP_FILES and os.path.exists(temp_dir):
         for file in os.listdir(temp_dir):

@@ -2,6 +2,7 @@
 /doc/*
 !/doc/livrables_client
 .vs
+.vscode
 /bdd/
 /data/*
 !/data/input/source/.gitkeep

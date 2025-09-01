@@ -271,7 +271,7 @@ def export_text_to_json(
         # Save the dictionary to a JSON file
         with open(file_path, "w", encoding="utf-8") as json_file:
             json.dump(text_extracted, json_file, ensure_ascii=False, indent=4)
-        print(f"Dictionnaire exporté dans le fichier : {file_path}")
+        print(f"Dictionnaire exporté dans le fichier :\n {file_path}\n")
 
     # Error handling
     except Exception as e:
@@ -460,7 +460,7 @@ def import_json_to_text(input_dir, input_file="text_extracted.json"):
         # Load the JSON file to dicctionnary
         with open(file_path, "r", encoding="utf-8") as json_file:
             data = json.load(json_file)
-        print(f"Dictionnaire importé depuis le fichier : {file_path}")
+        print(f"Dictionnaire importé depuis le fichier :\n{file_path}\n")
         return data
 
     # Error handling
@@ -799,6 +799,8 @@ def generate_word_report(
     # Save the Word document
     document.save(output_file_path)
     print(f"\nRapport généré:\n {output_file_path}")
+
+    return output_file_path
 
 
 def create_database_and_tables(bdd_dir, db_name="bdd_airpur.db"):
@@ -1156,3 +1158,72 @@ def calculate_duration(start_time):
     """
     minutes, seconds = divmod(time.time() - start_time, 60)
     print(f"\nDurée execution script : {int(minutes)} min {int(seconds)} sec")
+
+
+def backup_database(
+    db_path,
+    backup_dir,
+    max_backups=10
+):
+    """
+    Create a timestamped backup of the SQLite database and keep only the
+    latest N backups.
+    """
+    # Ensure the backup directory exists
+    os.makedirs(backup_dir, exist_ok=True)
+
+    # Create a timestamp for the backup filename
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+
+    # Get the database name without extension
+    db_name = os.path.basename(db_path).split(".")[0]
+
+    # Build the backup filename
+    backup_file = os.path.join(backup_dir, f"{db_name}_backup_{timestamp}.db")
+
+    # Copy the database file to the backup location
+    shutil.copy(db_path, backup_file)
+    print(f"\n[INFO] Backup de la base de données créée :\n{backup_file}\n")
+
+    # Sort and keep only the N most recent backups
+    backups = sorted(
+        [
+            f for f in os.listdir(backup_dir)
+            if f.startswith(f"{db_name}_backup_")
+        ],
+        key=lambda x: os.path.getctime(os.path.join(backup_dir, x))
+    )
+    if len(backups) > max_backups:
+        old_backups = backups[:-max_backups]
+        for old in old_backups:
+            os.remove(os.path.join(backup_dir, old))
+            print(f"[INFO] Old backup deleted:\n{old}\n")
+
+
+def backup_word_report(
+    word_path,
+    backup_dir,
+    client_acronym,
+    date_mesure
+):
+    """
+    Create a timestamped backup of the Word report and keep only the
+    latest N backups.
+    """
+    # Ensure the backup directory exists
+    os.makedirs(backup_dir, exist_ok=True)
+
+    # Create a timestamp for the backup filename
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+
+    # filter date_mesure to keep only numbers and hyphens
+    date_mesure = re.sub(r"[^\d-]", "", date_mesure)
+
+    # Build the backup filename
+    backup_file = os.path.join(
+        backup_dir,
+        f"word_report_{client_acronym}_{date_mesure}_{timestamp}.docx"
+    )
+    # Copy the Word report to the backup location
+    shutil.copy(word_path, backup_file)
+    print(f"\n[INFO] Backup du rapport Word créé :\n{backup_file}\n")

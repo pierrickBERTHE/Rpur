@@ -13,7 +13,7 @@ mail : pierrick.berthe@gmx.fr
 Août 2025
 """
 
-# Parameters for image processing and OCR
+# Parameters for image processing and OCR (adjusted since POC notebook)
 best_params = {
     'adjust_contrast': 0.5,
     'batch_size': 1,
