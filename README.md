@@ -112,6 +112,41 @@ Rpur/
 
 ---
 
+## Modélisation de la base de donnée
+
+┌───────────────────┐
+│     clients       │
+├───────────────────┤
+│ client_id   (PK)  │
+│ nom               │
+└───────────────────┘
+          │ 1
+          │
+          │ n
+          ▼
+┌────────────────────────────────────────┐
+│               cheminees                │
+├────────────────────────────────────────┤
+│ cheminee_id   (PK)                     │
+│ client_id     (FK → clients.client_id) │
+│ localisation  (PK)                     │
+│ remarques                              │
+└────────────────────────────────────────┘
+          │ 1
+          │
+          │ n
+          ▼
+┌───────────────────────────────────────────────┐
+│                  mesures                      │
+├───────────────────────────────────────────────┤
+│ mesure_id    (PK)                             │
+│ client_id   (FK → clients.client_id)          │
+│ cheminee_id  (FK → cheminees.cheminee_id)     │
+│ date_mesure                                   │
+└───────────────────────────────────────────────┘
+
+---
+
 ## Contact
 
 Pour toute question ou amélioration, contacter :  
