@@ -114,11 +114,6 @@ Rpur/
 
 ## Modélisation de la base de donnée
 
-erDiagram
-    CLIENTS ||--o{ CHEMINEES : possede
-    CHEMINEES ||--o{ MESURES  : a
-    CLIENTS  ||--o{ MESURES   : concerne
-
     CLIENTS {
       TEXT client_id PK
       TEXT nom
