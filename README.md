@@ -114,27 +114,6 @@ Rpur/
 
 ## Modélisation de la base de donnée
 
-    CLIENTS {
-      TEXT client_id PK
-      TEXT nom
-    }
-
-    CHEMINEES {
-      TEXT cheminee_id PK
-      TEXT client_id  FK
-      TEXT localisation PK
-      TEXT remarques
-    }
-
-    MESURES {
-      INT  mesure_id PK
-      TEXT client_id  FK
-      TEXT cheminee_id FK
-      DATETIME date_mesure
-    }
-
-Test
-
     ┌───────────────────┐
     │     clients       │
     ├───────────────────┤
@@ -145,18 +124,18 @@ Test
               │
               n
     ┌────────────────────────────────────────┐
-    │               cheminees                 │
+    │               cheminees                │
     ├────────────────────────────────────────┤
-    │ cheminee_id (PK)                        │
-    │ client_id (FK → clients.client_id)      │
-    │ localisation (PK)                       │
-    │ remarques                               │
+    │ cheminee_id (PK)                       │
+    │ client_id (FK → clients.client_id)     │
+    │ localisation (PK)                      │
+    │ remarques                              │
     └────────────────────────────────────────┘
               1
               │
               n
     ┌───────────────────────────────────────────────┐
-    │                   mesures                      │
+    │                   mesures                     │
     ├───────────────────────────────────────────────┤
     │ mesure_id (PK)                                │
     │ client_id (FK → clients.client_id)            │
