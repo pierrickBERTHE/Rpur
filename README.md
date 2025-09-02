@@ -133,6 +133,36 @@ Rpur/
       DATETIME date_mesure
     }
 
+Test
+
+    ┌───────────────────┐
+    │     clients       │
+    ├───────────────────┤
+    │ client_id (PK)    │
+    │ nom               │
+    └───────────────────┘
+              1
+              │
+              n
+    ┌────────────────────────────────────────┐
+    │               cheminees                 │
+    ├────────────────────────────────────────┤
+    │ cheminee_id (PK)                        │
+    │ client_id (FK → clients.client_id)      │
+    │ localisation (PK)                       │
+    │ remarques                               │
+    └────────────────────────────────────────┘
+              1
+              │
+              n
+    ┌───────────────────────────────────────────────┐
+    │                   mesures                      │
+    ├───────────────────────────────────────────────┤
+    │ mesure_id (PK)                                │
+    │ client_id (FK → clients.client_id)            │
+    │ cheminee_id (FK → cheminees.cheminee_id)      │
+    │ date_mesure                                   │
+    └───────────────────────────────────────────────┘
 
 ---
 
