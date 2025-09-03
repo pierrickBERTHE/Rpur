@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
     # Print time
     now = datetime.datetime.now().isoformat()
-    print("\nCode lance le : " + now + "\n")
+    print("\nCode lancé le : " + now + "\n")
 
     ##################### INPUT USER #####################
     if LOG_TO_FILE:
@@ -169,6 +169,7 @@ if __name__ == "__main__":
     # Check if the output file exists, if not create it
     if not os.path.exists(text_extracted_path):
         text_extracted = {}
+        image_count = 0
 
         # Extract text from the first X files in each subdirectory
         for subdir, files in tqdm(
@@ -210,7 +211,7 @@ if __name__ == "__main__":
                     )
 
                     # Extract text
-                    text, duration = func.extract_text_easyocr(
+                    text, extract_duration = func.extract_text_easyocr(
                         image_resized_path,
                         batch_size=best_params["batch_size"],
                         decoder=best_params["decoder"],
@@ -221,15 +222,22 @@ if __name__ == "__main__":
 
                     # Clean the french text
                     if IS_CORRECT_TEXT_FRENCH:
-                        text = func.correct_text_french(text)
+                        text, clean_duration = func.correct_text_french(text)
                     else:
                         pass
 
                     # Save the text in the dictionary
                     text_extracted[subdir][file] = text
 
-        # space for better readability
-        print("")
+                    # Increment the image counter
+                    image_count += 1
+
+        # print number of processed images and mean duration
+        print(f"\nNombre total d'images traitées : {image_count}")
+        if image_count > 0:
+            duration = time.time() - start_time
+            mean_duration = duration / image_count
+            print(f"Durée moyenne / image : {mean_duration:.1f} seconde(s)\n")
 
         # ExportJSON
         func.export_text_to_json(

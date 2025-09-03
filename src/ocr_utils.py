@@ -283,6 +283,12 @@ def clean_text(text):
     Clean the text by removing unwanted characters and formatting.
     '''
 
+    # If text is a tuple or not a string, convert it to a string
+    if isinstance(text, tuple):
+        text = " ".join(str(t) for t in text)
+    elif not isinstance(text, str):
+        text = str(text)
+
     # Replace line break (\n) and carriage return (-r) with space
     text = re.sub(r"[\n\r]", " ", text)
 
