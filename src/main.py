@@ -7,12 +7,8 @@ mail : pierrick.berthe@gmx.fr
 Août 2025
 """
 # Import necessary libraries
-import json
 import os
 import sys
-
-import ocr_utils as func
-from config import best_params, pattern
 from tqdm import tqdm
 import datetime
 import time
@@ -20,18 +16,22 @@ import importlib.metadata
 import PIL
 import warnings
 
+# Import custom OCR utilities and configurations
+import ocr_utils as func
+from config import best_params, pattern
+
+# Define some flags
+IS_CORRECT_TEXT_FRENCH = False
+USE_GPU_FOR_OCR = False
+GENERATE_WORD_REPORT = True
+INSERT_IN_DATABASE = True
+CLEANUP_TEMP_FILES = True
+LOG_TO_FILE = True
+IS_BACKUP_CREATED = True
+
 if __name__ == "__main__":
 
     ##################### DIRECTORIES SETUP #####################
-    
-    # Define some flags
-    IS_CORRECT_TEXT_FRENCH = False
-    USE_GPU_FOR_OCR = False
-    GENERATE_WORD_REPORT = True
-    INSERT_IN_DATABASE = True
-    CLEANUP_TEMP_FILES = True
-    LOG_TO_FILE = True
-    IS_BACKUP_CREATED = True
 
     # Directories setup (in logical order)
     project_dir = os.getcwd().split("\\src")[0]
@@ -166,6 +166,9 @@ if __name__ == "__main__":
     subdir_list, files_by_subdir = [], {}
     files_by_subdir = func.get_files_by_subdir(data_dir)
 
+    # save the files by subdir to json
+    func.save_to_json(files_by_subdir, output_json_dir, "files_by_subdir.json")
+
     # Check if the output file exists, if not create it
     if not os.path.exists(text_extracted_path):
         text_extracted = {}
@@ -173,7 +176,7 @@ if __name__ == "__main__":
 
         # Extract text from the first X files in each subdirectory
         for subdir, files in tqdm(
-            files_by_subdir.items(), desc="Analyse des dossiers"
+            files_by_subdir.items(), desc="\nAnalyse des dossiers"
         ):
             text_extracted[subdir] = {}
 
@@ -260,9 +263,6 @@ if __name__ == "__main__":
     # Print the step
     func.print_step(2, "Copie des fichiers avec mapping")
 
-    # Convert date_mesure to datetime object
-    date_obj = datetime.datetime.strptime(date_mesure, "%d/%m/%Y")
-
     # Copy files with mapping
     key_info_file, mapping_file = func.copy_files_with_mapping(
         text_extracted,
@@ -306,6 +306,9 @@ if __name__ == "__main__":
         # Print the step
         func.print_step(5, "Génération du rapport Word")
 
+        # generate the filename for the word report
+        output_file_name = f"Annexes photo 3CEP-{client_name}.docx"
+
         # Generate word report
         output_word_report_path = func.generate_word_report(
             data_per_chimney,
@@ -316,6 +319,7 @@ if __name__ == "__main__":
             files_by_subdir,
             date_mesure,
             logo_path=os.path.join(logo_dir, "logo_rpur.png"),
+            output_file_name=output_file_name
         )
 
     ##################### DATABASE IMPLEMENTATION ##########################
@@ -361,8 +365,20 @@ if __name__ == "__main__":
                 os.remove(file_path)
         os.rmdir(temp_dir)
 
+    # Save the client acronym to a text file
+    with open(
+        os.path.join(output_log_dir, "client_acronym.txt"),
+        "w",
+        encoding="utf-8"
+    ) as f:
+        f.write(client_acronym)
+
     # Print end message
     print("\n" + "*" * 75)
     print("==> FIN DU SCRIPT PRINCIPAL <==")
     print("*" * 75)
     func.calculate_duration(start_time)
+    print(
+        "\nAttendre encore 2 secondes pour s'assurer que les "
+        "opérations de backup soient terminées..."
+    )

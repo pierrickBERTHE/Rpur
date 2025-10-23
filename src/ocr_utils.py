@@ -7,20 +7,24 @@ Pierrick BERTHE
 mail : pierrick.berthe@gmx.fr
 Août 2025
 """
-
+# Imports standard
 import datetime
+from hmac import new
 import sys
 import os
-import cv2
-import numpy as np
-import easyocr
 import time
 from functools import wraps
-import language_tool_python
 import json
-from PIL import Image
 import re
 import shutil
+import subprocess
+
+# Import third-party libraries
+import language_tool_python
+import cv2
+from PIL import Image
+import numpy as np
+import easyocr
 import pandas as pd
 import docx
 from docx import Document
@@ -28,8 +32,6 @@ from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.shared import Pt
 import sqlite3
-import subprocess
-
 
 # pylint: disable=no-member
 
@@ -344,48 +346,59 @@ def generate_filename(
         text,
         pattern,
         client_acronym,
-        output_dir,
+        filenames,
         extension="jpg"
     ):
     """
     Generate filenames based on the extracted text.
+    If a filename already exists in 'filenames', increment the counter like Windows.
     """
-    # Clean the text
-    cleaned_text = clean_text(text)
+    # create a empty list to hold the new filenames
+    new_filenames = []
 
-    # Extract key information from the cleaned text
+    # Clean the text and extract key information
+    cleaned_text = clean_text(text)
     key_info = extract_key_info(cleaned_text, pattern)
 
-    # Initialize a list to store generated filenames
-    filenames = []
-
-    # Handle the case where chimney_name is empty
+    # If no chimney name is found, return "Same_as_original"
     if not key_info["chimney_name"]:
+        new_filenames.append("Same_as_original")
+        return new_filenames, key_info
 
-        # Use the original filename if no chimney name is found
-        filenames.append("Same_as_original")
+    # FOR each chimney name, generate a unique filename
+    for chimney_name in key_info["chimney_name"]:
 
-    else:
-        # Handle multiple chimney names
-        for chimney_name in key_info["chimney_name"]:
+        # create the base name and the regex pattern to match existing filenames
+        base_name = f"{client_acronym}_{chimney_name}"
+        pattern = re.compile(
+            rf"^{re.escape(base_name)}(?: \((\d+)\))?\.{re.escape(extension)}$"
+        )
+        max_counter = 0
 
-            # Create the filename
-            filename = f"{client_acronym}_{chimney_name}.{extension}"
-            filepath = os.path.join(output_dir, filename)
+        # Search for existing filenames and find the maximum counter
+        for fname in filenames:
+            match = pattern.match(fname)
+            if match:
+                # If a counter is found, update max_counter
+                if match.group(1):
+                    num = int(match.group(1))
+                    if num > max_counter:
+                        max_counter = num
+                # if no counter is found, consider counter=0
+                else:
+                    if max_counter == 0:
+                        max_counter = 0
 
-            # Add a counter to the filename if it already exists
-            counter = 1
-            while os.path.exists(filepath):
-                filename = (
-                    f"{client_acronym}_{chimney_name}_{counter}.{extension}"
-                )
-                filepath = os.path.join(output_dir, filename)
-                counter += 1
+        # Generate the next name
+        if max_counter == 0 and f"{base_name}.{extension}" not in filenames:
+            new_filename = f"{base_name}.{extension}"
+        else:
+            new_filename = f"{base_name} ({max_counter + 1}).{extension}"
 
-            # Add the filename to the list
-            filenames.append(filename)
+        # Append the new filename to the list
+        new_filenames.append(new_filename)
 
-    return filenames, key_info
+    return new_filenames, key_info
 
 
 def copy_files_with_mapping(
@@ -411,6 +424,7 @@ def copy_files_with_mapping(
         output_subdir = os.path.join(output_folder_dir, subdir)
         os.makedirs(output_subdir, exist_ok=True)
         mapping[subdir], key_info_dict[subdir] = {}, {}
+        filenames = []
         print(f"\nSUBDIRECTORY: {subdir}")
         print("-" * 75)
 
@@ -420,8 +434,11 @@ def copy_files_with_mapping(
                 text,
                 pattern,
                 client_acronym,
-                output_dir=output_folder_dir
+                filenames=filenames
             )
+
+            # append the new filenames to the list
+            filenames.extend(new_filenames)
 
             # Store the key information in the dictionary
             key_info_dict[subdir][file] = key_info
@@ -511,7 +528,7 @@ def group_by_chimney_name(data, pattern=r"[a-zA-Z]\d+"):
     # Iterate through the data and group by chimney name
     for subdir, files in data.items():
         for file, info in files.items():
-            chimney_names = info["chimney_name"]
+            chimney_names = info.get("chimney_name", "")
 
             # Ensure chimney_names is a list
             if not isinstance(chimney_names, list):
@@ -525,12 +542,13 @@ def group_by_chimney_name(data, pattern=r"[a-zA-Z]\d+"):
             # Iterate through each chimney name and group the data
             for chimney_name in chimney_names:
                 if chimney_name not in grouped_data:
-                    grouped_data[chimney_name] = {}
-                grouped_data[chimney_name][subdir] = {
+                    grouped_data[chimney_name] = []
+                grouped_data[chimney_name].append({
+                    "subdir" : subdir,
                     "file": file,
                     "client_name": info["client_name"],
                     "remarks": info["remarks"]
-                }
+                })
 
     # Sort the dictionary by the custom sort key
     grouped_data = dict(sorted(
@@ -673,8 +691,8 @@ def add_page_number_field(paragraph):
 
 def add_picture_to_paragraph(paragraph, image_path, width=Inches(1.5)):
     """
-    Ajoute une image à un paragraphe Word, ou un texte si l'image est
-    indisponible.
+    Add a picture to a Word document paragraph, or text if the image is
+    unavailable.
     """
     run = paragraph.add_run()
     try:
@@ -699,7 +717,7 @@ def generate_word_report(
         files_by_subdir,
         date_mesure,
         logo_path,
-        output_file_name="rapport_extraction.docx"
+        output_file_name="Annexes photo 3CEP.docx"
     ):
     """
     Generate a Word report containing compressed images, extracted information,
@@ -719,7 +737,7 @@ def generate_word_report(
         run = header_paragraph.add_run()
         run.add_picture(logo_path, width=Inches(1.0))
 
-    # Add "rapport d'inspection" to the right of the header
+    # Add the right-aligned header text
     right_header_paragraph = header.add_paragraph()
     right_header_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
     right_header_paragraph.add_run("Annexe inspection R'PUR CC").bold = True
@@ -739,33 +757,42 @@ def generate_word_report(
     footer_paragraph = footer.paragraphs[0]
     footer_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     footer_paragraph.add_run(
-        "SARL R'PUR Conduits Collectifs \nLe présent rapport rend comptes des "
-        "éléments vus, visitables et déclarés par l'exploitant.\n")
+        "SARL R'PUR Conduits Collectifs \nLe présent rapport rend comptes des"
+        " éléments vus, visitables et déclarés par l'exploitant.\n")
     add_page_number_field(footer_paragraph)
 
+    # ensure temp_dir exists
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Flag to control page breaks for first chimney
+    first_chimney = True
+
     # Loop through chimneys and their information
-    for conduit, subdirs in data_per_chimney.items():
+    for chimney, subdirs in data_per_chimney.items():
 
         # Skip if the chimney name is "No_chimney"
-        if "No_chimney" in conduit:
+        if "No_chimney" in chimney:
             continue
+
+        # start a new page for each chimney except the first
+        if not first_chimney:
+            document.add_page_break()
 
         # Add the chimney name
         title_1 = document.add_paragraph()
         title_1.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-        run = title_1.add_run(f"\nConduit: {conduit}")
+        run = title_1.add_run(f"Conduit: {chimney}")
         run.bold = True
         run.underline = True
         run.font.size = Pt(14)        
 
-        # Create a table with 3 columns: Location, Photo, Remark
+        # Create a table with 2 columns: Location, Photo
         n_rows = len(files_by_subdir.keys())
-        table = document.add_table(rows=n_rows, cols=3)
+        table = document.add_table(rows=n_rows, cols=2)
         table.style = 'Table Grid'
         table.autofit = False
-        table.columns[0].width = Inches(2.0)  # Width for location
-        table.columns[1].width = Inches(2.5)  # Width for photo
-        table.columns[2].width = Inches(3.0)  # Width for remarks
+        table.columns[0].width = Inches(2.0)
+        table.columns[1].width = Inches(2.5)
 
         # Fill the first column with the names from files_by_subdir
         keys_list = list(files_by_subdir.keys())
@@ -773,31 +800,39 @@ def generate_word_report(
             split_key = key.split("\\")[-1]
             table.cell(i, 0).text = split_key
 
-        # # Only split if key contains '\\'
+        # FOR each key in files_by_subdir (folders)
         for i, key in enumerate(keys_list):
+
+            # Check if the key contains backslashes and split accordingly
             split_key = key.split("\\")[-1] if "\\" in key else key
 
-            # Check if the split key exists in subdirs
-            if split_key in subdirs:
-                info = subdirs[split_key]
-                file = info["file"]
-                remarks = info["remarks"]
+            # FOR each list of subdirs for the current chimney
+            for entry in subdirs:
+                folder_name = entry["subdir"]
 
-                # Photo column
-                image_path = os.path.join(input_dir, key, file)
-                if os.path.exists(image_path):
-                    compressed_image_path = compress_image(image_path,temp_dir)
-                    cell = table.cell(i, 1)
-                    paragraph = cell.paragraphs[0]
-                    add_picture_to_paragraph(paragraph, compressed_image_path)
-                    paragraph.paragraph_format.space_before = Pt(4)
-                    paragraph.paragraph_format.space_after = Pt(4)
+                # Check if the split key exists in subdirs
+                if split_key in folder_name:
+                    file = entry["file"]
 
-                # Remark column
-                table.cell(i, 2).text = remarks if remarks else ""
-            else:
-                table.cell(i, 1).text = ""
-                table.cell(i, 2).text = ""
+                    # Photo column
+                    image_path = os.path.join(input_dir, key, file)
+                    if os.path.exists(image_path):
+                        compressed_image_path = compress_image(
+                            image_path, temp_dir
+                        )
+                        cell = table.cell(i, 1)
+                        paragraph = cell.add_paragraph()
+                        add_picture_to_paragraph(
+                            paragraph, compressed_image_path
+                        )
+                        paragraph.paragraph_format.space_before = Pt(4)
+                        paragraph.paragraph_format.space_after = Pt(4)
+
+                else:
+                    table.cell(i, 1).text = ""
+
+        # Update the flag after processing the first chimney
+        first_chimney = False
 
     # Build the full path for the output file
     output_file_path = os.path.join(output_dir, output_file_name)
@@ -938,21 +973,16 @@ def insert_cheminee_into_db(bdd_path, client_acronym, data_per_chimney):
         cur = conn.cursor()
 
         # FOR each chimney in the data_per_chimney dictionary
-        for cheminee_id, subdirs in data_per_chimney.items():
+        for cheminee_id, entries in data_per_chimney.items():
 
             # Skip if the chimney name is "No_chimney"
             if "No_chimney" in cheminee_id:
                 continue
 
             # Insert each subdirectory as a chimney using localisation
-            for subdir, info in subdirs.items():
-
-                # Keep the longest word in the subdirectory name
-                words = subdir.split()
-                max_length_word = max(words, key=len) if words else ""
-
-                # Keep the remarks if they exist
-                remarques = info.get("remarks", "")
+            for entry in entries:
+                subdir = entry["subdir"]
+                remark = entry["remarks"]
 
                 # Insert the chimney data into the table
                 try:
@@ -960,18 +990,13 @@ def insert_cheminee_into_db(bdd_path, client_acronym, data_per_chimney):
                         "INSERT INTO cheminees "
                         "(client_id, cheminee_id, localisation, remarques) "
                         "VALUES (?, ?, ?, ?)",
-                        (
-                            client_acronym,
-                            cheminee_id,
-                            max_length_word,
-                            remarques
-                        )
+                        (client_acronym, cheminee_id, subdir, remark)
                     )
                     cheminees_added += 1
                     print(
                         f"Client: '{client_acronym}', "
                         f"Cheminée: '{cheminee_id}', "
-                        f"Localisation: '{max_length_word}' : "
+                        f"Localisation: '{subdir}' : "
                         "ajoutée à la BDD."
                     )
 
@@ -980,7 +1005,7 @@ def insert_cheminee_into_db(bdd_path, client_acronym, data_per_chimney):
                     print(
                         f"Client: '{client_acronym}', "
                         f"Cheminée: '{cheminee_id}', "
-                        f"Localisation: '{max_length_word}' : "
+                        f"Localisation: '{subdir}' : "
                         "existe déjà dans la BDD."
                     )
                 except Exception as e:
@@ -1036,14 +1061,14 @@ def insert_mesure_into_db(
         cur = conn.cursor()
 
         # FOR each chimney in the data_per_chimney dictionary
-        for cheminee_id, subdirs in data_per_chimney.items():
+        for cheminee_id, entries in data_per_chimney.items():
 
             # Skip if the chimney name is "No_chimney"
             if "No_chimney" in cheminee_id:
                 continue
 
             # FOR each subdirectory in the chimney
-            for subdir, info in subdirs.items():
+            for entry in entries:
 
                 # Format the measurement date to SQL format
                 date_mesure_str = date_mesure
@@ -1058,8 +1083,9 @@ def insert_mesure_into_db(
                 # Find the last mesure_id and date for this client and chimney
                 cur.execute("""
                     SELECT MAX(mesure_id), MAX(date_mesure) FROM mesures
-                    WHERE client_id = ? AND cheminee_id = ?
-                """, (client_acronym, cheminee_id))
+                    WHERE client_id = ? AND cheminee_id = ?""",
+                    (client_acronym, cheminee_id)
+                )
                 row = cur.fetchone()
                 last_mesure_id, last_date_in_db = row if row else (None, None)
 
@@ -1079,8 +1105,10 @@ def insert_mesure_into_db(
                 # Check if the measure already exists
                 cur.execute("""
                     SELECT COUNT(*) FROM mesures
-                    WHERE client_id = ? AND cheminee_id = ? AND mesure_id = ?
-                """, (client_acronym, cheminee_id, mesure_id))
+                    WHERE client_id = ? AND cheminee_id = ? 
+                    AND mesure_id = ?""",
+                    (client_acronym, cheminee_id, mesure_id)
+                )
                 exists = cur.fetchone()[0]
 
                 # If the measure already exists, skip to the next
@@ -1222,13 +1250,10 @@ def backup_word_report(
     # Create a timestamp for the backup filename
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
 
-    # filter date_mesure to keep only numbers and hyphens
-    date_mesure = re.sub(r"[^\d-]", "", date_mesure)
-
     # Build the backup filename
     backup_file = os.path.join(
         backup_dir,
-        f"word_report_{client_acronym}_{date_mesure}_{timestamp}.docx"
+        f"word_report_{client_acronym}_{timestamp}.docx"
     )
     # Copy the Word report to the backup location
     shutil.copy(word_path, backup_file)
