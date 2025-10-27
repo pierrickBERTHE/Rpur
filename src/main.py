@@ -7,6 +7,7 @@ mail : pierrick.berthe@gmx.fr
 Août 2025
 """
 # Import necessary libraries
+import json
 import os
 import sys
 from tqdm import tqdm
@@ -52,6 +53,7 @@ if __name__ == "__main__":
     backup_dir = os.path.join(os.path.dirname(project_dir), "backup")
     bdd_backup_dir = os.path.join(backup_dir, "bdd")
     word_backup_dir = os.path.join(backup_dir, "word")
+    json_backup_dir = os.path.join(backup_dir, "json")
 
     # Check and create all directories if they do not exist
     func.check_and_create_directories(
@@ -352,8 +354,12 @@ if __name__ == "__main__":
         func.backup_word_report(
             output_word_report_path,
             word_backup_dir,
-            client_acronym,
-            date_mesure
+            client_acronym
+        )
+        func.backup_json(
+            output_json_dir,
+            json_backup_dir,
+            client_acronym
         )
 
     ##################### FINAL CLEANUP ##########################

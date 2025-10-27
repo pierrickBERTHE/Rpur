@@ -9,7 +9,6 @@ Août 2025
 """
 # Imports standard
 import datetime
-from hmac import new
 import sys
 import os
 import time
@@ -1237,12 +1236,10 @@ def backup_database(
 def backup_word_report(
     word_path,
     backup_dir,
-    client_acronym,
-    date_mesure
+    client_acronym
 ):
     """
-    Create a timestamped backup of the Word report and keep only the
-    latest N backups.
+    Create a timestamped backup of the Word report.
     """
     # Ensure the backup directory exists
     os.makedirs(backup_dir, exist_ok=True)
@@ -1257,4 +1254,33 @@ def backup_word_report(
     )
     # Copy the Word report to the backup location
     shutil.copy(word_path, backup_file)
-    print(f"\n[INFO] Backup du rapport Word créé :\n{backup_file}\n")
+    print(f"[INFO] Backup du rapport Word créé :\n{backup_file}\n")
+
+
+def backup_json(
+    json_path,
+    backup_dir,
+    client_acronym
+):
+    """
+    Create a timestamped backup of the JSON files of client.
+    """
+    # Ensure the backup directory exists
+    os.makedirs(backup_dir, exist_ok=True)
+
+    # Create a timestamp for the backup filename
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+
+    # Create a folder for the client acronym and timestamp
+    folder_name = f"json_{client_acronym}_{timestamp}"
+    client_backup_dir = os.path.join(backup_dir, folder_name)
+    os.makedirs(client_backup_dir, exist_ok=True)
+
+    # Copy all JSON files in the json_path to the client backup directory
+    for file_name in os.listdir(json_path):
+        if file_name.endswith(".json"):
+            src_file = os.path.join(json_path, file_name)
+            dst_file = os.path.join(client_backup_dir, file_name)
+            shutil.copy(src_file, dst_file)
+            print(f"[INFO] Backup du fichier JSON créé :\n{dst_file}\n")
+    print(f"[INFO] Tous les fichiers JSON ont été sauvegardés dans :\n{client_backup_dir}\n")
