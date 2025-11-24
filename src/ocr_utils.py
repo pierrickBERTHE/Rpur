@@ -804,6 +804,8 @@ def generate_word_report(
 
             # Check if the key contains backslashes and split accordingly
             split_key = key.split("\\")[-1] if "\\" in key else key
+            cell = table.cell(i, 1)
+            images_found = False
 
             # FOR each list of subdirs for the current chimney
             for entry in subdirs:
@@ -819,16 +821,16 @@ def generate_word_report(
                         compressed_image_path = compress_image(
                             image_path, temp_dir
                         )
-                        cell = table.cell(i, 1)
                         paragraph = cell.add_paragraph()
                         add_picture_to_paragraph(
                             paragraph, compressed_image_path
                         )
                         paragraph.paragraph_format.space_before = Pt(4)
                         paragraph.paragraph_format.space_after = Pt(4)
+                        images_found = True
 
-                else:
-                    table.cell(i, 1).text = ""
+                if not images_found:
+                    cell.text = ""
 
         # Update the flag after processing the first chimney
         first_chimney = False
