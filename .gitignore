@@ -1,14 +1,22 @@
-# Keep only the necessary files
-/doc/*
-!/doc/livrables_client
+# Ignore Visual Studio and VSCode settings
 .vs
 .vscode
+
+# Ignore specific files and directories
+/doc/*
+!/doc/livrables_client
 /bdd/
 /data/*
 !/data/input/source/.gitkeep
 !/data/output/.gitkeep
-src/__pycache__/
-src/*.pyc
-src/__pycache__/config.cpython-312.pyc
-src/__pycache__/ocr_utils.cpython-312.pyc
+
+# Ignore shortcuts
 Poetry_Rpur - Raccourci.lnk
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Ignore coverage reports
+htmlcov/
+.coverage
