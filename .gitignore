@@ -10,8 +10,9 @@
 !/data/input/source/.gitkeep
 !/data/output/.gitkeep
 
-# Ignore shortcuts
+# Ignore shortcuts and tool
 Poetry_Rpur - Raccourci.lnk
+git-cleanup.ps1
 
 # Python cache files
 __pycache__/
