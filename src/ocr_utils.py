@@ -1,11 +1,11 @@
 """
-Ce fichier contient des fonctions utilitaires pour le traitement d'images et
-la reconnaissance de caractères.
+Ce fichier contient des fonctions utilitaires pour le traitement OCR,
+la correction de texte, la gestion des fichiers et la génération de rapports.
 
 Auteurs :
 Pierrick BERTHE
 mail : pierrick.berthe@gmx.fr
-Août 2025
+Février 2026
 """
 # Imports standard
 import datetime
@@ -35,7 +35,8 @@ import sqlite3
 # pylint: disable=no-member
 
 class Logger(object):
-    """Logger class to redirect print statements to a file.
+    """
+    Logger class to redirect print statements to a file.
     """
     def __init__(self, log_path):
         self.terminal = sys.stdout
@@ -89,53 +90,6 @@ def check_and_create_directories(*dirs):
     for d in dirs:
         if not os.path.exists(d):
             os.makedirs(d, exist_ok=True)
-
-
-def get_user_inputs(data_dir):
-    """
-    Ask the user for inputs such as client acronym, date of measurement,
-    and folder to ignore. Returns these inputs.
-    """
-    # create acronym for the client name
-    client_acronym = input("Entrez les initiales du nom du client : ")
-
-    # Define the date of the measurement (format: JJ/MM/AAAA and before today)
-    while True:
-        try:
-            date_mesure = input(
-                "Entrez la date de la mesure (format JJ/MM/AAAA) : "
-            )
-            date_obj = datetime.datetime.strptime(date_mesure, "%d/%m/%Y")
-            if date_obj > datetime.datetime.now():
-                print("La date ne peut pas être dans le futur.")
-                continue
-            break
-        except ValueError:
-            print(
-                "Format incorrect ou date impossible. "
-                "Veuillez entrer la date au format JJ/MM/AAAA (ex. 30/06/2025)."
-            )
-
-    # Specify the folder to ignore
-    folder_ignored = input("Entrez le nom exact du dossier à ignorer : ")
-    folder_ignored_dir = os.path.join(data_dir, folder_ignored)
-
-    return client_acronym, date_mesure, folder_ignored, folder_ignored_dir
-
-
-def get_files_by_subdir(folder_path, folder_source_name="source"):
-    """
-    Get all files in the subdirectories of the given folder.
-    """
-    # Initialize a dictionary to hold the files by subdirectory
-    files_by_subdir = {}
-
-    # FOR each subdirectory in the folder, get the filenames
-    for root, dirs, filenames in os.walk(folder_path):
-        if root == folder_path:
-            continue
-        files_by_subdir[root.split(folder_source_name + "\\")[-1]] = filenames
-    return files_by_subdir
 
 
 def preprocess_black_text(image_path, output_path):
@@ -283,7 +237,6 @@ def clean_text(text):
     '''
     Clean the text by removing unwanted characters and formatting.
     '''
-
     # If text is a tuple or not a string, convert it to a string
     if isinstance(text, tuple):
         text = " ".join(str(t) for t in text)
@@ -320,9 +273,11 @@ def extract_key_info(text, pattern=r"[a-zA-Z]\d+"):
         chimney_names = []
         remarks = text[matches[-1].end():].strip()
 
+        # Collect all chimney names found
         for match in matches:
             chimney_names.append(match.group())
 
+        # Return the extracted information
         return {
             "client_name": client_name,
             "chimney_name": chimney_names,
@@ -350,7 +305,8 @@ def generate_filename(
     ):
     """
     Generate filenames based on the extracted text.
-    If a filename already exists in 'filenames', increment the counter like Windows.
+    If a filename already exists in 'filenames', increment the counter
+    like Windows.
     """
     # create a empty list to hold the new filenames
     new_filenames = []
@@ -378,11 +334,13 @@ def generate_filename(
         for fname in filenames:
             match = pattern.match(fname)
             if match:
+
                 # If a counter is found, update max_counter
                 if match.group(1):
                     num = int(match.group(1))
                     if num > max_counter:
                         max_counter = num
+
                 # if no counter is found, consider counter=0
                 else:
                     if max_counter == 0:
@@ -504,8 +462,9 @@ def sort_key(chimney_name, pattern):
     """
     # Find all matches of the pattern in the chimney name
     matches = re.findall(pattern, chimney_name)
+
+    # If match is a tuple (from groups), flatten if needed or fallback
     if matches:
-        # If match is a tuple (from groups), flatten if needed
         if isinstance(matches[0], tuple):
             sorted_parts = [(m[0], int(m[1])) for m in matches]
         else:

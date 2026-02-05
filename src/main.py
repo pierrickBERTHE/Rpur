@@ -4,147 +4,68 @@ Ce fichier contient le script principal pour le projet OCR.
 Auteurs :
 Pierrick BERTHE
 mail : pierrick.berthe@gmx.fr
-Août 2025
+Février 2026
 """
-# Import necessary libraries
-import json
+# # Import necessary libraries
 import os
 import sys
-from tqdm import tqdm
-import datetime
-import time
-import importlib.metadata
-import PIL
 import warnings
+import time
 
 # Import custom OCR utilities and configurations
-import ocr_utils as func
-from config import best_params, pattern
+import src.ocr_utils as func
+import src.config as config
+from src.pipeline.setup import (
+    setup_directories,
+    print_banner_and_versions,
+    get_user_inputs,
+    get_files_by_subdir
+)
+from src.pipeline.extraction import extract_text_from_images
+from src.pipeline.processing import process_files_and_data, get_client_name
+from src.pipeline.reporting import generate_word_report
+from src.pipeline.database import insert_into_database
+from src.pipeline.backup import create_backups
+from src.pipeline.cleanup import cleanup_temp_files, save_client_acronym
 
-# Define some flags
-IS_CORRECT_TEXT_FRENCH = False
-USE_GPU_FOR_OCR = False
-GENERATE_WORD_REPORT = True
-INSERT_IN_DATABASE = True
-CLEANUP_TEMP_FILES = True
-LOG_TO_FILE = True
-IS_BACKUP_CREATED = True
 
-if __name__ == "__main__":
+def main():
+    """Main function to execute the OCR pipeline."""
 
-    ##################### DIRECTORIES SETUP #####################
-
-    # Directories setup (in logical order)
+    ################### SETUP ##########################
+    # Get project directory (assumed to be parent of src)
     project_dir = os.getcwd().split("\\src")[0]
 
-    # Input/output/data directories
-    data_dir = os.path.join(project_dir, "data", "input", "source")
-    output_dir = os.path.join(project_dir, "data", "output")
-    output_json_dir = os.path.join(output_dir, "json")
-    output_folder_dir = os.path.join(output_dir, "folder_output")
-    output_log_dir = os.path.join(output_dir, "log")
-    temp_dir = os.path.join(output_dir, "temp")
-
-    # Other project directories
-    logo_dir = os.path.join(project_dir, "image")
-    bdd_dir = os.path.join(project_dir, "bdd")
-
-    # Backup directories (outside project_dir)
-    backup_dir = os.path.join(os.path.dirname(project_dir), "backup")
-    bdd_backup_dir = os.path.join(backup_dir, "bdd")
-    word_backup_dir = os.path.join(backup_dir, "word")
-    json_backup_dir = os.path.join(backup_dir, "json")
-
-    # Check and create all directories if they do not exist
-    func.check_and_create_directories(
-        data_dir,
-        output_dir,
-        output_json_dir,
-        output_folder_dir,
-        output_log_dir,
-        temp_dir,
-        logo_dir,
-        bdd_dir,
-        backup_dir,
-        bdd_backup_dir,
-        word_backup_dir
-    )
+    # Setup directories
+    dirs = setup_directories(project_dir)
 
     # Ignore specific warnings
     warnings.filterwarnings("ignore", message=".*pin_memory.*")
 
     # Redirect all prints to a log file
-    if LOG_TO_FILE:
+    if config.LOG_TO_FILE:
         sys.stdout = func.Logger(
-            os.path.join(output_log_dir, "process_log.txt")
+            os.path.join(dirs["output_log_dir"], "process_log.txt")
         )
 
-    # Print the start message
-    print("""
-    *****************************************
-    *                                       *
-    *   RRRRR    PPPPP    U   U    RRRRR    *
-    *   R   R    P   P    U   U    R   R    *
-    *   RRRRR    PPPPP    U   U    RRRRR    *
-    *   R  R     P        U   U    R  R     *
-    *   R   R    P         UUU     R   R    *
-    *                                       *
-    *****************************************
-    """
-    )
+    # Print banner and versions
+    print_banner_and_versions()
 
-    # print the git version
-    git_version = func.get_git_version()
-    print(func.format_git_version(git_version))
-
-    # Print all flags
-    print("\nflags :")
-    print("IS_CORRECT_TEXT_FRENCH :", IS_CORRECT_TEXT_FRENCH)
-    print("USE_GPU_FOR_OCR        :", USE_GPU_FOR_OCR)
-    print("GENERATE_WORD_REPORT   :", GENERATE_WORD_REPORT)
-    print("INSERT_IN_DATABASE     :", INSERT_IN_DATABASE)
-    print("CLEANUP_TEMP_FILES     :", CLEANUP_TEMP_FILES)
-    print("LOG_TO_FILE            :", LOG_TO_FILE)
-    print("IS_BACKUP_CREATED      :", IS_BACKUP_CREATED)
-
-    ###################### PRINT LIBRAIRIES VERSIONS #####################
-
-    print("\nInterpréteur python :")
-    print("Python        : " + sys.version + "\n")
-
-    print("Version des librairies utilisées :")
-    print("Docx          : " + func.docx.__version__)
-    print("Easyocr       : " + func.easyocr.__version__)
-    print(
-        "LanguageTool  : " + importlib.metadata.version("language-tool-python")
-    )
-    print("Numpy         : " + func.np.__version__)
-    print("Pandas        : " + func.pd.__version__)
-    print("Pillow        : " + PIL.__version__)
-    print("Pytorch       : " + importlib.metadata.version("torch"))
-    print("OpenCV        : " + func.cv2.__version__) #pylint: disable=no-member
-    print("TQDM          : " + importlib.metadata.version("tqdm"))
-
-    # Print time
-    now = datetime.datetime.now().isoformat()
-    print("\nCode lancé le : " + now + "\n")
-
-    ##################### INPUT USER #####################
-    if LOG_TO_FILE:
-        # Save the current stdout to restore it later
+    # if logging to file, temporarily restore stdout to get user inputs
+    if config.LOG_TO_FILE:
         old_stdout = sys.stdout
-        sys.stdout = sys.__stdout__ 
+        sys.stdout = sys.__stdout__
 
-    # Input from the user
+    # Get user inputs
     (
         client_acronym,
         date_mesure,
         folder_ignored,
         folder_ignored_dir
-    ) = func.get_user_inputs(data_dir)
+    ) = get_user_inputs(dirs["data_dir"])
 
-    if LOG_TO_FILE:
-        # Activate the logger again
+    # Restore stdout to log file
+    if config.LOG_TO_FILE:
         sys.stdout = old_stdout
 
     # Print the inputs
@@ -156,228 +77,95 @@ if __name__ == "__main__":
     # Start the timer
     start_time = time.time()
 
-    ##################### TEXT EXTRACTION #####################
-    # Print the step
-    func.print_step(1, "Extraction du texte des images")
+    # Get files by subdirectory
+    files_by_subdir = get_files_by_subdir(dirs["data_dir"])
+    func.save_to_json(
+        files_by_subdir, dirs["output_json_dir"], "files_by_subdir.json"
+    )
 
-    # Text extracted file
-    output_file_name="text_extracted.json"
-    text_extracted_path = os.path.join(output_json_dir, output_file_name)
+    ################ TEXT EXTRACTION  ##############
 
-    # Create a dictionary to store files for each subdirectory
-    subdir_list, files_by_subdir = [], {}
-    files_by_subdir = func.get_files_by_subdir(data_dir)
+    # TEXT EXTRACTION
+    text_extracted = extract_text_from_images(
+        dirs["data_dir"],
+        dirs["output_json_dir"],
+        dirs["temp_dir"],
+        files_by_subdir,
+        folder_ignored,
+        folder_ignored_dir,
+        start_time
+    )
 
-    # save the files by subdir to json
-    func.save_to_json(files_by_subdir, output_json_dir, "files_by_subdir.json")
+    ############### DATA PROCESSING #################
 
-    # Check if the output file exists, if not create it
-    if not os.path.exists(text_extracted_path):
-        text_extracted = {}
-        image_count = 0
-
-        # Extract text from the first X files in each subdirectory
-        for subdir, files in tqdm(
-            files_by_subdir.items(), desc="\nAnalyse des dossiers"
-        ):
-            text_extracted[subdir] = {}
-
-            # Skip the ignored folder with empty text
-            if subdir == folder_ignored_dir or subdir == folder_ignored:
-                print(f"\nDossier ignoré : '{subdir}'")
-                for file in files:
-                    text_extracted[subdir][file] = ""
-
-            else:
-                # All files in subdirectory
-                for file in tqdm(
-                    files[:], desc=f"{subdir} (processing)", leave=False
-                    ):
-
-                    # Get the image paths
-                    image_path = os.path.join(data_dir, subdir, file)
-                    image_processed_path = os.path.join(
-                        temp_dir, "image_processed.jpg"
-                    )
-                    image_resized_path = os.path.join(
-                        temp_dir, "resized_image.jpg"
-                    )
-
-                    # Process the image
-                    image_processed = func.preprocess_black_text(
-                        image_path, image_processed_path
-                    )
-
-                    # Resize the image
-                    image_resized = func.resize_image(
-                        image_processed_path,
-                        image_resized_path,
-                        scale_percent=best_params["scale_percent"]
-                    )
-
-                    # Extract text
-                    text, extract_duration = func.extract_text_easyocr(
-                        image_resized_path,
-                        batch_size=best_params["batch_size"],
-                        decoder=best_params["decoder"],
-                        adjust_contrast=best_params["adjust_contrast"],
-                        worker=best_params["worker"],
-                        gpu_state=USE_GPU_FOR_OCR
-                    )
-
-                    # Clean the french text
-                    if IS_CORRECT_TEXT_FRENCH:
-                        text, clean_duration = func.correct_text_french(text)
-                    else:
-                        pass
-
-                    # Save the text in the dictionary
-                    text_extracted[subdir][file] = text
-
-                    # Increment the image counter
-                    image_count += 1
-
-        # print number of processed images and mean duration
-        print(f"\nNombre total d'images traitées : {image_count}")
-        if image_count > 0:
-            duration = time.time() - start_time
-            mean_duration = duration / image_count
-            print(f"Durée moyenne / image : {mean_duration:.1f} seconde(s)\n")
-
-        # ExportJSON
-        func.export_text_to_json(
+    # PROCESS FILES AND DATA
+    key_info_dict, data_per_chimney = process_files_and_data(
         text_extracted,
-        output_json_dir,
-        output_file=output_file_name
-        )
-
-    else:
-        # Importation du fichier JSON
-        text_extracted = func.import_json_to_text(
-            output_json_dir,
-            input_file=output_file_name
-        )
-        print(
-            "Le fichier JSON d'extraction de texte existe déjà, il est importé"
-        )
-
-    ##################### COPY FILES WITH MAPPING #####################
-    # Print the step
-    func.print_step(2, "Copie des fichiers avec mapping")
-
-    # Copy files with mapping
-    key_info_file, mapping_file = func.copy_files_with_mapping(
-        text_extracted,
-        pattern,
-        data_dir,
-        output_folder_dir,
-        output_json_dir,
+        dirs["data_dir"],
+        dirs["output_folder_dir"],
+        dirs["output_json_dir"],
         client_acronym
     )
 
-    # Importation JSON file
-    key_info_dict = func.import_json_to_text(
-        output_json_dir,
-        input_file=key_info_file
-    )
+    # GET CLIENT NAME
+    client_name = get_client_name(key_info_dict)
 
-    ##################### GROUP DATA BY CHIMNEY NAME #####################
-    # Print the step
-    func.print_step(3, "Groupement des données par nom de cheminée")
+    ############### REPORTING WORD #############
 
-    # group the data by chimney name
-    data_per_chimney = func.group_by_chimney_name(key_info_dict, pattern)
-
-    # save the data to JSON file
-    func.save_to_json(
-        data_per_chimney, output_json_dir, "data_per_chimney.json"
-    )
-
-    #####################  GET CLIENT NAME #############################
-    # Print the step
-    func.print_step(4, "Récupération du nom du client")
-
-    # Get client name
-    client_names = func.get_client_name_counts(key_info_dict)
-    client_name = max(client_names, key=client_names.get)
-    print(f"\nClient name: {client_name}")
-
-    ##################### WORD REPORT #################################
-    output_word_report_path = None
-    if GENERATE_WORD_REPORT:
-        # Print the step
-        func.print_step(5, "Génération du rapport Word")
-
-        # generate the filename for the word report
-        output_file_name = f"Annexes photo 3CEP-{client_name}.docx"
-
-        # Generate word report
-        output_word_report_path = func.generate_word_report(
+    # WORD REPORT if needed
+    if config.GENERATE_WORD_REPORT:
+        output_word_report_path = generate_word_report(
             data_per_chimney,
-            data_dir,
-            output_dir,
-            temp_dir,
+            dirs["data_dir"],
+            dirs["output_dir"],
+            dirs["temp_dir"],
             client_name,
             files_by_subdir,
             date_mesure,
-            logo_path=os.path.join(logo_dir, "logo_rpur.png"),
-            output_file_name=output_file_name
+            dirs["logo_dir"]
         )
+    else:
+        output_word_report_path = None
+        print("\nGénération du rapport Word désactivée par le flag.")
 
-    ##################### DATABASE IMPLEMENTATION ##########################
-    if INSERT_IN_DATABASE:
-        # Print the step
-        func.print_step(6, "Insertion des données dans la base de données")
+    ############### DATABASE #############
 
-        # Create the database and tables
-        bdd_path = func.create_database_and_tables(bdd_dir)
-
-        # Insert data into the database
-        func.insert_client_into_db(bdd_path, client_acronym, client_name)
-        func.insert_cheminee_into_db(
-            bdd_path, client_acronym, data_per_chimney
+    # DATABASE INSERTION if needed
+    if config.INSERT_IN_DATABASE:
+        bdd_path = insert_into_database(
+            dirs["bdd_dir"],
+            client_acronym,
+            client_name,
+            data_per_chimney,
+            date_mesure
         )
-        func.insert_mesure_into_db(
-                bdd_path,
-                client_acronym,
-                data_per_chimney,
-                date_mesure
-            )
+    else:
+        bdd_path = None
+        print("\nInsertion dans la base de données désactivée par le flag.")
 
-##################### BACKUP ################################
-    # Print the step
-    func.print_step(7, "Création des sauvegardes")
+    ############### BACKUPS #############
 
-    # Backup the database and word report
-    if IS_BACKUP_CREATED:
-        func.backup_database(bdd_path, backup_dir=bdd_backup_dir)
-        func.backup_word_report(
+    # BACKUPS if needed
+    if config.IS_BACKUP_CREATED:
+        create_backups(
+            bdd_path,
+            dirs["bdd_backup_dir"],
             output_word_report_path,
-            word_backup_dir,
+            dirs["word_backup_dir"],
+            dirs["output_json_dir"],
+            dirs["json_backup_dir"],
             client_acronym
         )
-        func.backup_json(
-            output_json_dir,
-            json_backup_dir,
-            client_acronym
-        )
+    else:
+        print("\nCréation des backups désactivée par le flag.")
 
-    ##################### FINAL CLEANUP ##########################
-    # Delete temporary directory
-    if CLEANUP_TEMP_FILES and os.path.exists(temp_dir):
-        for file in os.listdir(temp_dir):
-            file_path = os.path.join(temp_dir, file)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-        os.rmdir(temp_dir)
+    ############### CLEANUP #############
 
-    # Save the client acronym to a text file
-    with open(
-        os.path.join(output_log_dir, "client_acronym.txt"),
-        "w",
-        encoding="utf-8"
-    ) as f:
-        f.write(client_acronym)
+    # cleanup temporary files
+    cleanup_temp_files(dirs["temp_dir"])
+
+    # Save client acronym
+    save_client_acronym(dirs["output_log_dir"], client_acronym)
 
     # Print end message
     print("\n" + "*" * 75)
@@ -388,3 +176,7 @@ if __name__ == "__main__":
         "\nAttendre encore 2 secondes pour s'assurer que les "
         "opérations de backup soient terminées..."
     )
+
+# Execute main function
+if __name__ == "__main__":
+    main()

@@ -1,17 +1,22 @@
 """
 Fichier de configuration pour le projet OCR.
 
-Ce fichier contient les paramètres de configuration pour le projet OCR, y
-compris les chemins d'accès aux fichiers, les paramètres de traitement d'image
-et les options de modèle.
-Il est recommandé de ne pas modifier ce fichier à moins que vous ne sachiez ce
-que vous faites.
+Ce fichier contient les paramètres et les drapeaux utilisés dans le projet OCR.
 
 Auteurs :
 Pierrick BERTHE
 mail : pierrick.berthe@gmx.fr
-Août 2025
+Février 2026
 """
+
+# Define some flags
+IS_CORRECT_TEXT_FRENCH = False
+USE_GPU_FOR_OCR = False
+GENERATE_WORD_REPORT = True
+INSERT_IN_DATABASE = True
+CLEANUP_TEMP_FILES = True
+LOG_TO_FILE = True
+IS_BACKUP_CREATED = True
 
 # Parameters for image processing and OCR (adjusted since POC notebook)
 best_params = {
