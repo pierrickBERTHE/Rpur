@@ -11,6 +11,12 @@ import os
 import sys
 import warnings
 import time
+from pathlib import Path
+
+# Add root project in PATH
+_project_root = Path(__file__).parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
 
 # Import custom OCR utilities and configurations
 import src.ocr_utils as func
