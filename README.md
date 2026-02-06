@@ -19,6 +19,8 @@ Ce projet est une solution d’ETL (Extract, Transform, Load) spécialisée en O
 - **Journalisation** : Redirection de tous les prints dans un fichier log.
 - **Gestion des dossiers et fichiers temporaires**.
 
+Voici un exemple concret d'extraction de texte par OCR à partir d'image du terrain : 
+![Extraction de texte à partir d'image du terrain](./image/demo_OCR.png)
 ---
 
 ## Technologies et librairies utilisées
