@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../AppData/Local/pypoetry/Cache/virtualenvs/rpur-mb1bjR4T-py3.12"
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true,
+		"powershell.cwd": "rpur-mb1bjR4T-py3.12"
+	}
+}
