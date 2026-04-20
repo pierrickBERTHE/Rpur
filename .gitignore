@@ -13,6 +13,8 @@
 # Ignore shortcuts and tool
 Poetry_Rpur - Raccourci.lnk
 git-cleanup.ps1
+update_dep.ps1
+update_flag_version.ps1
 
 # Python cache files
 __pycache__/
