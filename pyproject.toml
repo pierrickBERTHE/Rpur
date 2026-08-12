@@ -19,7 +19,8 @@ dependencies = [
     "torch (>=2.13.0,<3.0.0)",
     "pytest (>=9.0.3,<10.0.0)",
     "lxml (>=6.1.0,<7.0.0)",
-    "urllib3 (>=2.7.0,<3.0.0)"
+    "urllib3 (>=2.7.0,<3.0.0)",
+    "setuptools (>=84.0.0,<85.0.0)"
 ]
 package-mode = false
 
