@@ -21,7 +21,8 @@ dependencies = [
     "lxml (>=6.1.0,<7.0.0)",
     "urllib3 (>=2.8.0,<3.0.0)",
     "setuptools (>=84.2.1,<85.0.0)",
-    "fsspec (>=2026.9.0,<2027.0.0)"
+    "fsspec (>=2026.9.0,<2027.0.0)",
+    "filelock (>=4.2.10,<5.0.0)"
 ]
 package-mode = false
 
